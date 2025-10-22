@@ -1,8 +1,13 @@
 import os
+from pathlib import Path
 from PIL import Image
 import mlflow
+mlflow.set_tracking_uri("file:./mlruns")
 
-def validate_data(data_dir="data"):
+def validate_data(data_dir="mlops_pipeline/data"):
+    # ✅ ทำให้แน่ใจว่า path เป็น relative ต่อ repo ปัจจุบัน
+    data_dir = Path(data_dir).resolve()
+    os.chdir(Path(__file__).resolve().parent)
     """
     ตรวจสอบความถูกต้องของชุดข้อมูลภาพ (5 คลาส)
     และบันทึกผลลงใน MLflow
@@ -38,7 +43,8 @@ def validate_data(data_dir="data"):
         mlflow.log_metric("total_images", total_images)
         mlflow.log_metric("corrupted_images", corrupted_images)
         mlflow.log_param("num_classes", len(class_counts))
-        mlflow.log_dict(class_counts, "class_distribution.json")
+        # ✅ log artifacts แบบ relative
+        mlflow.log_dict(class_counts, "artifacts/class_distribution.json")
 
         print(f"🟩 ตรวจสอบข้อมูลสำเร็จ: {len(class_counts)} classes, {total_images} images")
         print(f"🟥 พบไฟล์เสีย: {corrupted_images}")

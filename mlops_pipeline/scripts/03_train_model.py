@@ -4,6 +4,7 @@ import mlflow.tensorflow
 from tensorflow.keras import layers, models
 import os
 from pathlib import Path
+mlflow.set_tracking_uri("file:./mlruns")
 
 ALLOWED_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp')
 

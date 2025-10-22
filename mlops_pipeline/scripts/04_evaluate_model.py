@@ -1,5 +1,7 @@
 import sys
 from mlflow.tracking import MlflowClient
+import mlflow
+mlflow.set_tracking_uri("file:./mlruns")
 
 
 def transition_model_alias(model_name, alias):

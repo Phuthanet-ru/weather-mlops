@@ -1,6 +1,7 @@
 import os
 import tensorflow as tf
 import mlflow
+mlflow.set_tracking_uri("file:./mlruns")
 
 def preprocess_data(data_dir="data", img_size=(128, 128), batch_size=32):
     """
