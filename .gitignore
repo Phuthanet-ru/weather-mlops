@@ -1,0 +1,20 @@
+# Ignore dataset
+data/
+*.csv
+*.zip
+
+# Ignore Python cache and environment
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.db
+*.sqlite3
+.env/
+.venv/
+env/
+venv/
+
+# Ignore MLflow local runs
+mlruns/
+mlartifacts/

@@ -1,54 +1,43 @@
-# ชื่อของ Workflow
+# 🔹 ชื่อของ Workflow
 name: MLOps Pipeline CI/CT/CD
 
-
-# กำหนดเงื่อนไขการรัน: เมื่อมีการ push หรือ pull request ไปยัง branch 'main'
+# 🔹 กำหนดเงื่อนไขการรัน: เมื่อมีการ push หรือ pull request ไปยัง branch 'main'
 on:
   push:
-    branches: [ "main" ] 
+    branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
 
-
 jobs:
-  # --- JOB ใหม่ที่เพิ่มเข้ามาสำหรับ CI ---
+  # -------------------- 🔹 JOB 1: CI Checks --------------------
   ci-checks:
     runs-on: ubuntu-latest
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      # การดึงโค้ด (checkout)" จาก Repository ของคุณลงมาไว้บนเครื่อง
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.10'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r mlops_pipeline/requirements.txt
+          pip install flake8 pytest pandas
 
+      - name: Lint with flake8
+        run: |
+          flake8 mlops_pipeline/scripts --count --select=E9,F63,F7,F82 --show-source --statistics
+          flake8 mlops_pipeline/scripts --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r mlops_pipeline/requirements.txt
-        # ติดตั้งเครื่องมือสำหรับ Linting และ Testing
-        pip install flake8 pytest pandas
+      - name: Test with pytest
+        run: |
+          pytest || (if [ $? -eq 5 ]; then echo "Pytest finished: No tests found."; exit 0; else exit $?; fi)
 
-
-    - name: Lint with flake8
-      # ตรวจสอบคุณภาพและความถูกต้องของโค้ด Python
-      run: |
-        flake8 mlops_pipeline/scripts --count --select=E9,F63,F7,F82 --show-source --statistics
-        flake8 mlops_pipeline/scripts --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-
-
-    - name: Test with pytest
-      # pytest 
-      run: |
-        pytest || (if [ $? -eq 5 ]; then echo "Pytest finished: No tests found."; exit 0; else exit $?; fi)
-
-
+  # -------------------- 🔹 JOB 2: Build & Train --------------------
   build-and-train:
-    # ทำให้ job นี้ต้องรันหลังจาก ci-checks สำเร็จเท่านั้น
     needs: ci-checks
     runs-on: ubuntu-latest
     env:
@@ -56,45 +45,54 @@ jobs:
       MLFLOW_TRACKING_USERNAME: ${{ secrets.MLFLOW_TRACKING_USERNAME }}
       MLFLOW_TRACKING_PASSWORD: ${{ secrets.MLFLOW_TRACKING_PASSWORD }}
 
-
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.10'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r mlops_pipeline/requirements.txt
+          pip install kaggle
 
+      # ✅ โหลด dataset จาก Kaggle ก่อนเริ่มรัน
+      - name: Download Dataset from Kaggle
+        env:
+          KAGGLE_JSON: ${{ secrets.KAGGLE_JSON }}
+        run: |
+          echo "$KAGGLE_JSON" > kaggle.json
+          mkdir -p ~/.kaggle
+          mv kaggle.json ~/.kaggle/
+          chmod 600 ~/.kaggle/kaggle.json
 
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r mlops_pipeline/requirements.txt
+          echo "📥 Downloading Kaggle dataset..."
+          mkdir -p mlops_pipeline/data
+          kaggle datasets download -d ammaralfaifi/5class-weather-status-image-classification -p mlops_pipeline/data --unzip
+          echo "✅ Dataset downloaded successfully."
 
+      # ✅ ขั้นตอน pipeline ปกติ
+      - name: Run Data Validation
+        run: python mlops_pipeline/scripts/01_data_validation.py
 
-    - name: Run Data Validation
-      run: python mlops_pipeline/scripts/01_data_validation.py
+      - name: Run Data Preprocessing
+        id: preprocessing
+        run: python mlops_pipeline/scripts/02_data_preprocessing.py
 
+      - name: Run Model Training, Evaluation, and Registration
+        run: python mlops_pipeline/scripts/03_train_model.py
 
-    - name: Run Data Preprocessing
-      id: preprocessing
-      run: python mlops_pipeline/scripts/02_data_preprocessing.py
+      - name: Transition Model to Staging
+        if: success()
+        run: python mlops_pipeline/scripts/04_transition_model.py "weather-classifier-prod" "Staging"
 
-
-    - name: Run Model Training, Evaluation, and Registration
-      run: python mlops_pipeline/scripts/03_train_evaluate_register.py ${{ steps.preprocessing.outputs.run_id }} 10.0
-
-
-    - name: Transition Model to Staging
-      if: success()
-      run: python mlops_pipeline/scripts/04_transition_model.py "weather-classifier-prod" "Staging"
-
-
-    - name: Upload MLflow artifacts for inspection
-      if: success()
-      uses: actions/upload-artifact@v4
-      with:
-        name: mlflow-artifacts
-        path: mlruns/
+      - name: Upload MLflow artifacts for inspection
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mlflow-artifacts
+          path: mlruns/
