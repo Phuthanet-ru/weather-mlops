@@ -1,0 +1,14 @@
+artifact_uri: file:///T:/Work/Y3/MachineLearningEngineeringforProduction/weather-mlops/mlruns/565512490108628146/9f98847b6bcb46bf955514b43634fd9b/artifacts
+end_time: 1761147894534
+entry_point_name: ''
+experiment_id: '565512490108628146'
+lifecycle_stage: active
+run_id: 9f98847b6bcb46bf955514b43634fd9b
+run_name: silent-goat-509
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1761147894490
+status: 4
+tags: []
+user_id: ACE

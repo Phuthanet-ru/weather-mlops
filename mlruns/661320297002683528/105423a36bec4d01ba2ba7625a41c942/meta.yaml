@@ -1,0 +1,14 @@
+artifact_uri: file:///T:/Work/Y3/MachineLearningEngineeringforProduction/weather-mlops/mlruns/661320297002683528/105423a36bec4d01ba2ba7625a41c942/artifacts
+end_time: 1761150050596
+entry_point_name: ''
+experiment_id: '661320297002683528'
+lifecycle_stage: active
+run_id: 105423a36bec4d01ba2ba7625a41c942
+run_name: cnn_lr_0.001_ep_5
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1761150050556
+status: 4
+tags: []
+user_id: ACE

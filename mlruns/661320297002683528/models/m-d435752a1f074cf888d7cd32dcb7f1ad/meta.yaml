@@ -1,0 +1,10 @@
+artifact_location: file:///T:/Work/Y3/MachineLearningEngineeringforProduction/weather-mlops/mlruns/661320297002683528/models/m-d435752a1f074cf888d7cd32dcb7f1ad/artifacts
+creation_timestamp: 1761155815394
+experiment_id: '661320297002683528'
+last_updated_timestamp: 1761155826576
+model_id: m-d435752a1f074cf888d7cd32dcb7f1ad
+model_type: null
+name: weather_cnn_model
+source_run_id: 29184838795c4462a2beeba46494a7a1
+status: 2
+status_message: null

@@ -1,0 +1,14 @@
+artifact_uri: file:///T:/Work/Y3/MachineLearningEngineeringforProduction/weather-mlops/mlruns/633227511011243888/db393d7449b94f8a99e580f72ea3c79c/artifacts
+end_time: 1761148490374
+entry_point_name: ''
+experiment_id: '633227511011243888'
+lifecycle_stage: active
+run_id: db393d7449b94f8a99e580f72ea3c79c
+run_name: nimble-hen-31
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1761148488173
+status: 3
+tags: []
+user_id: ACE

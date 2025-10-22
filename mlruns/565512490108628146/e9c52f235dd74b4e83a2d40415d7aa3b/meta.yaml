@@ -1,0 +1,14 @@
+artifact_uri: file:///T:/Work/Y3/MachineLearningEngineeringforProduction/weather-mlops/mlruns/565512490108628146/e9c52f235dd74b4e83a2d40415d7aa3b/artifacts
+end_time: 1761147331786
+entry_point_name: ''
+experiment_id: '565512490108628146'
+lifecycle_stage: active
+run_id: e9c52f235dd74b4e83a2d40415d7aa3b
+run_name: able-goose-918
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1761147331727
+status: 4
+tags: []
+user_id: ACE
