@@ -86,27 +86,11 @@ jobs:
           echo "✅ Dataset structure fixed."
           ls mlops_pipeline/data
 
-      - name: Clean corrupted or invalid images
+      - name: Check and remove corrupted images
         run: |
-          pip install pillow
-          python - <<'EOF'
-          from PIL import Image
-          import os
-          ALLOWED = ('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp')
-          data_dir = "mlops_pipeline/data"
-          removed = 0
-          for subdir, _, files in os.walk(data_dir):
-              for f in files:
-                  path = os.path.join(subdir, f)
-                  if f.lower().endswith(ALLOWED):
-                      try:
-                          Image.open(path).verify()
-                      except Exception:
-                          os.remove(path)
-                          removed += 1
-          print(f"🧹 Removed {removed} corrupted images.")
-          EOF
-          
+          python -m pip install tensorflow pillow
+          python mlops_pipeline/scripts/find_corrupted.py
+
       # ✅ ขั้นตอน pipeline ปกติ
       - name: Run Data Validation
         run: python mlops_pipeline/scripts/01_data_validation.py
