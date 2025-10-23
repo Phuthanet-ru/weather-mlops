@@ -111,7 +111,8 @@ def evaluate_and_transition_model():
         try:
             client = MlflowClient()
             # E501 fix: ตัดบรรทัด
-            # ค้นหา Version ที่เป็น 'Latest' (ที่เพิ่ง Register และยังไม่มี Stage)
+            # ค้นหา Version ที่เป็น 'Latest'
+            # (ที่เพิ่ง Register และยังไม่มี Stage)
             latest_version = client.get_latest_versions(
                 model_name_to_load, stages=['None'])[0].version
 
