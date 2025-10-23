@@ -7,6 +7,7 @@ from PIL import Image
 import os
 from pathlib import Path
 import argparse
+import shutil # 🚨 เพิ่ม import shutil สำหรับการลบ directory ที่ไม่ใช่ directory ว่าง
 
 
 # 💡 บันทึกค่า Remote Tracking URI (จาก Environment Variables)
@@ -27,11 +28,14 @@ def remove_dot_files(root_dir):
     for root, dirs, files in os.walk(root_dir, topdown=False):
         for d in list(dirs):
             if d.startswith('.'):
+                full_path = os.path.join(root, d) # 💡 ต้องกำหนด full_path ก่อนลบ
                 try:
-                    os.rmdir(os.path.join(root, d))
+                    # 🚨 แก้ไข: ใช้ shutil.rmtree แทน os.rmdir เพื่อลบ directory ที่ซ่อนอยู่
+                    shutil.rmtree(full_path) 
                     dirs.remove(d)
                     count += 1
                 except OSError:
+                    # ใน test case ของคุณ โฟลเดอร์ว่างและควรลบได้ แต่ถ้ามีไฟล์อยู่ shutil.rmtree จะทำงาน
                     pass
             for file in files:
                 full_path = os.path.join(root, file)
@@ -98,7 +102,7 @@ def train_evaluate_register(preprocessing_run_id=None, epochs=10, lr=0.001):
               f"ลบไฟล์เสีย {corrupted_count} ไฟล์")
 
         # 💡 สร้างและบันทึกรายงาน Data Validation Artifacts
-        # 💡 แก้ E501 โดยสร้างตัวแปรแยก
+        # 💡 แก้ E501 และ E128
         validation_status = ('PASS' if cleaned_count + corrupted_count == 0
                              else 'WARNING')
 
