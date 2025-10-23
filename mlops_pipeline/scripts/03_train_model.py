@@ -100,7 +100,7 @@ def train_evaluate_register(preprocessing_run_id=None, epochs=10, lr=0.001):
         # 💡 สร้างและบันทึกรายงาน Data Validation Artifacts
         # 💡 แก้ E501 โดยสร้างตัวแปรแยก
         validation_status = ('PASS' if cleaned_count + corrupted_count == 0
-                           else 'WARNING')
+                             else 'WARNING')
 
         report_content = (
             f"--- Data Validation Report ---\n"
