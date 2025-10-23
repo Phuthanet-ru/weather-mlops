@@ -1,24 +1,30 @@
 # -----------------------------
 # 🌤️ Weather Classifier Dockerfile
 # -----------------------------
+# ---- Base Image ----
     FROM python:3.10-slim
 
-    # ตั้ง working directory
+    # ---- Working Directory ----
     WORKDIR /app
     
-    # คัดลอกไฟล์ requirements เข้ามา
-    COPY mlops_pipeline/requirements.txt ./requirements.txt
+    # ---- Copy project ----
+    COPY mlops_pipeline/requirements.txt .
     
-    # ติดตั้ง dependencies ที่จำเป็น
-    RUN pip install --no-cache-dir -r requirements.txt \
-        && pip install fastapi uvicorn python-multipart pillow mlflow tensorflow
+    # ---- Install dependencies ----
+    RUN pip install --no-cache-dir --upgrade pip && \
+        pip install -r requirements.txt && \
+        pip install fastapi uvicorn pillow tensorflow
     
-    # คัดลอกทุกไฟล์ในโปรเจกต์เข้ามาใน container
-    COPY . .
+    # ---- Copy API code ----
+    COPY deployment/app.py deployment/app.py
     
-    # เปิดพอร์ต 8000 (สำหรับ API)
+    # ---- Copy trained model ----
+    # (ถูก log ไว้ที่ mlruns/... เราจะ copy มาจาก path ของ run ล่าสุดใน workflow)
+    COPY model/ model/
+    
+    # ---- Expose port ----
     EXPOSE 8000
     
-    # รันเซิร์ฟเวอร์ FastAPI
+    # ---- Run FastAPI ----
     CMD ["uvicorn", "deployment.app:app", "--host", "0.0.0.0", "--port", "8000"]
     
