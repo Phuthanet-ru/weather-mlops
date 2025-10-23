@@ -152,20 +152,30 @@ jobs:
         run: |
           # Port 8000 ควรจะว่างแล้ว
           docker run -d -p 8000:8000 --name weather_api weather-mlops-api
-          sleep 10
+          
+          # 💡 เพิ่มเวลารอให้ Container Start (เปลี่ยนจาก 10 เป็น 20 วินาที เพื่อความมั่นใจ)
+          echo "Waiting for container to start (20s)..."
+          sleep 20
+          
           echo "✅ Docker container started successfully."
 
       - name: Test API Prediction (with image)
         run: |
-            IMAGE_PATH="test_assets/1440909480.jpg" 
-            # ... (โค้ดเตรียมไฟล์ภาพทดสอบ) ...
-            echo "🧪 Testing API Prediction using ${IMAGE_PATH}..."       # 🚨 ใช้ Port 8000
-            curl -X POST -F "file=@${IMAGE_PATH}" http://127.0.0.1:8000/predict
-            echo "✅ API responded successfully."  
+          IMAGE_PATH="test_assets/1440909480.jpg" 
+          echo "🧪 Testing API Prediction using ${IMAGE_PATH}..."
+          
+          # 💡 ขั้นตอนใหม่: ตรวจสอบ Health Check ก่อน (ถ้า API มี endpoint /)
+          echo "Checking API Health endpoint..."
+          curl --fail --retry 5 --retry-delay 5 http://127.0.0.1:8000/
+          
+          echo "Sending Prediction Request..."
+          curl -X POST -F "file=@${IMAGE_PATH}" http://127.0.0.1:8000/predict
+          echo "✅ API responded successfully."
+
       - name: Stop and Remove Docker Container
         if: always()
         run: |
           docker stop weather_api
           docker rm weather_api
-          echo "🧹 Cleaned up container
+          echo "🧹 Cleaned up container"
       
