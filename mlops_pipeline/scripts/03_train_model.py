@@ -179,7 +179,7 @@ def train_evaluate_register(preprocessing_run_id=None, epochs=10, lr=0.001):
             model=model,
             artifact_path=ARTIFACT_PATH,
             input_example=np.zeros((1, 128, 128, 3)),
-            registered_model_name=None 
+            registered_model_name=None
         )
 
         # 2. Register Model (ใช้ URI ที่ถูกต้อง)
@@ -199,8 +199,8 @@ def train_evaluate_register(preprocessing_run_id=None, epochs=10, lr=0.001):
             print(f"⚠️ Accuracy {val_acc:.2f} ต่ำกว่าเกณฑ์ ไม่ลงทะเบียนโมเดล")
 
 
+# E305 fix: เพิ่ม 2 บรรทัดว่างเปล่า
 if __name__ == "__main__":
-    # E305 fix (เพิ่ม 2 บรรทัดว่าง)
     
     # E501 fix
     parser = argparse.ArgumentParser(
@@ -218,4 +218,3 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     train_evaluate_register(epochs=args.epochs, lr=args.lr)
-    # W292 fix: เพิ่มบรรทัดว่างที่ท้ายไฟล์
