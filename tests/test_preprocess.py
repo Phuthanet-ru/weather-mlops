@@ -8,22 +8,21 @@ from pathlib import Path
 ALLOWED_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp')
 
 def remove_dot_files(root_dir):
-    """ลบไฟล์ระบบหรือไฟล์ที่ไม่ใช่ภาพ (จำลองจาก 03_train_model.py)"""
+    """ลบไฟล์ระบบหรือไฟล์ที่ไม่ใช่ภาพ"""
     count = 0
     if not os.path.isabs(root_dir):
         root_dir = os.path.join(os.getcwd(), root_dir)
     for root, dirs, files in os.walk(root_dir, topdown=False):
         for d in list(dirs):
             if d.startswith('.'):
-                full_path = os.path.join(root, d) # 🚨 ต้องกำหนด full_path
+                full_path = os.path.join(root, d)
                 try:
-                    # ✅ แก้ไข: ใช้ shutil.rmtree เพื่อลบโฟลเดอร์ dot
-                    shutil.rmtree(full_path) 
+                    shutil.rmtree(full_path)
                     dirs.remove(d)
                     count += 1
-                except Exception: # เปลี่ยนเป็น Exception เพื่อดักจับทุกข้อผิดพลาดในการลบ
+                except Exception:
                     pass
-            
+
             for file in files:
                 full_path = os.path.join(root, file)
                 # E501 fix: ตัดบรรทัดให้สั้นลง
