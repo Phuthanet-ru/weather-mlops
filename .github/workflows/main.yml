@@ -36,9 +36,7 @@ jobs:
         run: |
           pytest || (if [ $? -eq 5 ]; then echo "Pytest finished: No tests found."; exit 0; else exit $?; fi)
 
-
-  ## 🔹 JOB 2: Build & Train (CT/CD)
-  # -------------------- 🔹 JOB 2: Build & Train --------------------
+  # -------------------- 🔹 JOB 2: Build, Train, and Deploy --------------------
   build-and-train:
     needs: ci-checks
     runs-on: ubuntu-latest
@@ -61,8 +59,8 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r mlops_pipeline/requirements.txt
           pip install kaggle
-          
-      # ✅ โหลด dataset จาก Kaggle ก่อนเริ่มรัน
+
+      # ✅ โหลด dataset จาก Kaggle
       - name: Download Dataset from Kaggle
         env:
           KAGGLE_JSON: ${{ secrets.KAGGLE_JSON }}
@@ -71,8 +69,6 @@ jobs:
           mkdir -p ~/.kaggle
           mv kaggle.json ~/.kaggle/
           chmod 600 ~/.kaggle/kaggle.json
-
-          echo "📥 Downloading Kaggle dataset..."
           mkdir -p mlops_pipeline/data
           kaggle datasets download -d ammaralfaifi/5class-weather-status-image-classification -p mlops_pipeline/data --unzip
           echo "✅ Dataset downloaded successfully."
@@ -81,19 +77,17 @@ jobs:
         run: |
           echo "🔧 Checking folder structure..."
           if [ -d "mlops_pipeline/data/data" ]; then
-            echo "⚙️ Moving dataset up one level..."
             mv mlops_pipeline/data/data/* mlops_pipeline/data/
             rm -rf mlops_pipeline/data/data
           fi
           echo "✅ Dataset structure fixed."
-          ls mlops_pipeline/data
 
       - name: Check and remove corrupted images
         run: |
           python -m pip install tensorflow pillow
           python mlops_pipeline/scripts/find_corrupted.py
 
-      # ✅ ขั้นตอน pipeline ปกติ
+      # ✅ Pipeline steps
       - name: Run Data Validation
         run: python mlops_pipeline/scripts/01_data_validation.py
 
@@ -103,33 +97,97 @@ jobs:
 
       - name: Run Model Training, Evaluation, and Registration
         run: python mlops_pipeline/scripts/03_train_model.py
+      
+      # 💡 ขั้นตอนใหม่: ตรวจสอบโครงสร้าง MLflow artifacts
+      - name: Debug MLflow Artifacts Structure
+        run: |
+          echo "Current directory contents:"
+          ls -a
+          echo "---"
+          echo "Contents of mlruns folder:"
+          ls -R mlruns || (echo "mlruns directory not found or is empty." && exit 1)
+          echo "---"
+          echo "Attempting flexible find again:"
+          find mlruns -type f -path "*/artifacts/*"
 
       - name: Run Model Full Evaluation
         run: python mlops_pipeline/scripts/04_evaluate_model.py
-      
-      - name: Test API prediction (smoke test)
+
+      # ✅ Copy model artifacts for Docker build
+      - name: Copy trained model to deployment folder
         run: |
-          pip install fastapi uvicorn python-multipart pillow
-          # 🚀 การแก้ไขที่ทำให้ ModuleNotFoundError หายไป
-          export PYTHONPATH=$PYTHONPATH:. 
+          echo "📦 Searching for latest trained model in MLflow..."
           
-          echo "🚀 Starting API for Smoke Test..."
-          python -m uvicorn deployment.app:app --host 0.0.0.0 --port 8000 &
-          sleep 10
+          # 🚨 แก้ไข: ค้นหาไฟล์ MLmodel ที่อยู่ใต้โครงสร้าง mlruns/models/
+          # โครงสร้าง: mlruns/[Experiment ID]/models/[Model ID]/artifacts/MLmodel
+          MODEL_PATH=$(find mlruns -type f -path "*/models/*/artifacts/MLmodel" | sort -r | head -1)
           
-          echo "Checking API Health..."
-          curl -X 'GET' 'http://127.0.0.1:8000/' | grep "Weather Classifier API"
-          echo "✅ API Smoke Test completed."
+          if [ -z "$MODEL_PATH" ]; then
+            echo "❌ Model not found anywhere under mlruns/*/models/*/artifacts/"
+            # ลบ ls -R mlruns ออกได้เลย ถ้าไม่จำเป็นต้อง debug แล้ว
+            exit 1
+          fi
+          
+          MODEL_DIR=$(dirname "$MODEL_PATH")
+          echo "📁 Model found at: $MODEL_DIR"
+          
+          mkdir -p model
+          # cp -r จะคัดลอกไฟล์ทั้งหมด (รวมถึง MLmodel, conda.yaml, data/ ฯลฯ)
+          cp -r "$MODEL_DIR"/* model/
+          echo "✅ Model copied to ./model/"
+          ls -R model
 
-      - name: Transition Model to Staging
-        if: success()
-        # โมเดลจะถูกโหลดด้วย 'Latest' แล้วย้ายไป 'Staging' เพราะผ่านเกณฑ์ 0.60
-        run: python mlops_pipeline/scripts/04_evaluate_model.py "weather-classifier-prod" "Latest"
 
-      - name: Upload MLflow artifacts for inspection
+      # ✅ Upload artifacts for debugging (optional)
+      - name: Upload MLflow artifacts
         if: success()
         uses: actions/upload-artifact@v4
         with:
           name: mlflow-artifacts
           path: mlruns/
-      
+
+      # -------------------- 🔹 Docker Build & Test API --------------------
+      - name: Build Docker Image
+        run: |
+          docker build -t weather-mlops-api .
+
+      - name: Run Docker Container (background)
+        run: |
+          # 🚨 ใช้ Port 8001 สำหรับ Container
+          docker run -d -p 8001:8000 --name weather_api weather-mlops-api
+          echo "⏳ Waiting for container to start (25s)..."
+          sleep 25
+          if docker ps | grep weather_api; then
+            echo "✅ Docker container started successfully on port 8001."
+          else
+            echo "🚨 Container failed to start. Logs:"
+            docker logs weather_api
+            exit 1
+          fi
+
+      - name: Test API Prediction
+        run: |
+          IMAGE_PATH="test_assets/1440909480.jpg"
+          echo "🧪 Testing API Prediction using ${IMAGE_PATH}..."
+          
+          # 💡 เพิ่มการตรวจสอบไฟล์
+          if [ ! -f "$IMAGE_PATH" ]; then
+              echo "🚨 ERROR: Test image not found at ${IMAGE_PATH}. Listing current directory contents:"
+              ls -R
+              exit 1
+          fi
+          
+          # 1. ตรวจสอบ Health Check
+          curl --fail --retry 5 --retry-delay 5 http://127.0.0.1:8001/
+          
+          # 2. ทดสอบ Prediction
+          curl -X POST -F "file=@${IMAGE_PATH}" http://127.0.0.1:8001/predict
+          
+          echo "✅ API responded successfully."
+
+      - name: Stop and Remove Docker Container
+        if: always()
+        run: |
+          docker stop weather_api || true
+          docker rm weather_api || true
+          echo "🧹 Cleaned up container"
