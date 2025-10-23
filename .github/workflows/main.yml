@@ -167,7 +167,7 @@ jobs:
 
       - name: Test API Prediction
         run: |
-          IMAGE_PATH="test_assets/144090948.jpg"
+          IMAGE_PATH="test_assets/1440909480.jpg"
           echo "🧪 Testing API Prediction using ${IMAGE_PATH}..."
           
           # 💡 เพิ่มการตรวจสอบไฟล์
