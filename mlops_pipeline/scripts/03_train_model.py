@@ -7,8 +7,7 @@ from PIL import Image
 import os
 from pathlib import Path
 import argparse
-import shutil #  🚨  เพิ่ม import shutil สำหรับการลบ
-#  directory ที่ไม่ใช่ directory ว่าง
+import shutil
 
 
 # 💡 บันทึกค่า Remote Tracking URI (จาก Environment Variables)
