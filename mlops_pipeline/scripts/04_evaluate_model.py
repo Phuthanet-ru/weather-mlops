@@ -11,14 +11,21 @@ mlflow.set_tracking_uri("file:./mlruns")
 mlflow.set_experiment("Weather Classification - Model Evaluation")
 
 MODEL_NAME = "weather-classifier-prod"
-STAGE = "Staging"
+model_stage = "Staging"
 IMG_SIZE = (128, 128)
 BATCH_SIZE = 32
 DATA_PATH = "mlops_pipeline/data"
 
 def evaluate_model():
+
+    if os.environ.get("MLFLOW_TRACKING_URI"):
+        mlflow.set_tracking_uri(os.environ["MLFLOW_TRACKING_URI"])
+    if os.environ.get("MLFLOW_TRACKING_USERNAME") and os.environ.get("MLFLOW_TRACKING_PASSWORD"):
+        os.environ["MLFLOW_TRACKING_INSECURE_TLS"] = "true" # หากใช้ Self-signed certs
+        mlflow.set_experiment("Weather Classification - Model Evaluation") # เรียก set_experiment หลัง set_tracking_uri
+
     print("📦 กำลังโหลดโมเดลจาก MLflow Registry...")
-    model_uri = f"models:/{MODEL_NAME}/{STAGE}"
+    model_uri = f"models:/{MODEL_NAME}/{model_stage}"
     model = mlflow.tensorflow.load_model(model_uri)
 
     print("📂 โหลดข้อมูล Validation/Test Set...")
