@@ -102,6 +102,16 @@ jobs:
       - name: Run Model Training, Evaluation, and Registration
         run: python mlops_pipeline/scripts/03_train_model.py
 
+      - name: Evaluate model
+        run: python mlops_pipeline/scripts/04_evaluate_model.py
+  
+      - name: Test API prediction (smoke test)
+        run: |
+          pip install fastapi uvicorn python-multipart pillow
+          python -m uvicorn mlops_pipeline.deployment.app:app --host 0.0.0.0 --port 8000 &
+          sleep 10
+          curl -X 'GET' 'http://127.0.0.1:8000/' | grep "Weather Classifier API"
+
       - name: Transition Model to Staging
         if: success()
         run: python mlops_pipeline/scripts/04_evaluate_model.py "weather-classifier-prod" "Staging"
@@ -112,3 +122,5 @@ jobs:
         with:
           name: mlflow-artifacts
           path: mlruns/
+
+      
