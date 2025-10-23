@@ -75,6 +75,16 @@ jobs:
           kaggle datasets download -d ammaralfaifi/5class-weather-status-image-classification -p mlops_pipeline/data --unzip
           echo "✅ Dataset downloaded successfully."
 
+      - name: Fix dataset folder structure
+        run: |
+          echo "🔧 Checking folder structure..."
+          if [ -d "mlops_pipeline/data/data" ]; then
+            echo "⚙️ Moving dataset up one level..."
+            mv mlops_pipeline/data/data/* mlops_pipeline/data/
+            rm -rf mlops_pipeline/data/data
+          fi
+          echo "✅ Dataset structure fixed."
+          ls mlops_pipeline/data
       # ✅ ขั้นตอน pipeline ปกติ
       - name: Run Data Validation
         run: python mlops_pipeline/scripts/01_data_validation.py
