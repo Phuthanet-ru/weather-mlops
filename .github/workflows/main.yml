@@ -102,7 +102,7 @@ jobs:
       - name: Run Model Training, Evaluation, and Registration
         run: python mlops_pipeline/scripts/03_train_model.py
 
-      - name: Evaluate model
+      - name: Run Model Full Evaluation
         run: python mlops_pipeline/scripts/04_evaluate_model.py
   
       - name: Test API prediction (smoke test)
@@ -114,7 +114,8 @@ jobs:
 
       - name: Transition Model to Staging
         if: success()
-        run: python mlops_pipeline/scripts/04_evaluate_model.py "weather-classifier-prod" "Staging"
+        # 🚨 แก้ไข Argument: เปลี่ยนจาก 'Staging' เป็น 'Latest' เพื่อให้โหลดโมเดลได้สำเร็จ
+        run: python mlops_pipeline/scripts/04_evaluate_model.py "weather-classifier-prod" "Latest"
 
       - name: Upload MLflow artifacts for inspection
         if: success()
