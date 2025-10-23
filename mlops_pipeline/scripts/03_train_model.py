@@ -9,6 +9,7 @@ from pathlib import Path
 # กำหนดให้ MLflow ใช้โฟลเดอร์เก็บผลในเครื่อง
 mlflow.set_tracking_uri("file:./mlruns")
 
+
 # ✅ นามสกุลภาพที่อนุญาต
 ALLOWED_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp')
 
