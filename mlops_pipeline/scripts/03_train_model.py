@@ -2,6 +2,7 @@ import tensorflow as tf
 import mlflow
 import mlflow.tensorflow
 from tensorflow.keras import layers, models
+import numpy as np
 from PIL import Image
 import os
 from pathlib import Path
