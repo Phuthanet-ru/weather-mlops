@@ -139,10 +139,9 @@ jobs:
       - name: Kill Uvicorn Process
         if: success()
         run: |
-          # ฆ่า process ที่กำลังฟัง port 8000
-          # || true ถูกเพิ่มเพื่อให้ Step นี้ไม่ล้มเหลวแม้ว่าจะไม่มี process รันอยู่
-          lsof -t -i :8000 | xargs kill || true
-          echo "🧹 Uvicorn process killed (if running)."
+         # 💡 ฆ่า process ที่มีชื่อ 'uvicorn' โดยไม่สนว่ามันรันบน port อะไร
+         pkill uvicorn || true
+         echo "🧹 Uvicorn process killed (if running)."
   
       - name: Build Docker Image
         run: |
@@ -150,18 +149,24 @@ jobs:
 
       - name: Run Docker Container (background)
         run: |
-          # Port 8000 ควรจะว่างแล้ว
           docker run -d -p 8000:8000 --name weather_api weather-mlops-api
           
-          # 💡 เพิ่มเวลารอให้ Container Start (เปลี่ยนจาก 10 เป็น 20 วินาที เพื่อความมั่นใจ)
-          echo "Waiting for container to start (20s)..."
-          sleep 20
+          # เพิ่มการรอให้ Container พร้อม
+          echo "Waiting for container to start (25s)..."
+          sleep 25
           
-          echo "✅ Docker container started successfully."
+          # 💡 ตรวจสอบว่า Container รันอยู่จริงหรือไม่
+          if docker ps | grep weather_api; then
+              echo "✅ Docker container started and is RUNNING."
+          else
+              echo "🚨 Docker container failed to start. Printing logs..."
+              docker logs weather_api
+              exit 1 # ทำให้ Pipeline ล้มเหลวอย่างชัดเจนถ้า Container รันไม่ขึ้น
+          fi
 
       - name: Test API Prediction (with image)
         run: |
-          IMAGE_PATH="test_assets/1440909480.jpg" 
+          IMAGE_PATH="test_assets/144090948.jpg" 
           echo "🧪 Testing API Prediction using ${IMAGE_PATH}..."
           
           # 💡 ขั้นตอนใหม่: ตรวจสอบ Health Check ก่อน (ถ้า API มี endpoint /)
