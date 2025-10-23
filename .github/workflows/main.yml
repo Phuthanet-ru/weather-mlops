@@ -36,6 +36,8 @@ jobs:
         run: |
           pytest || (if [ $? -eq 5 ]; then echo "Pytest finished: No tests found."; exit 0; else exit $?; fi)
 
+
+  ## 🔹 JOB 2: Build & Train (CT/CD)
   # -------------------- 🔹 JOB 2: Build & Train --------------------
   build-and-train:
     needs: ci-checks
@@ -59,7 +61,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r mlops_pipeline/requirements.txt
           pip install kaggle
-
+          
       # ✅ โหลด dataset จาก Kaggle ก่อนเริ่มรัน
       - name: Download Dataset from Kaggle
         env:
@@ -104,16 +106,15 @@ jobs:
 
       - name: Run Model Full Evaluation
         run: python mlops_pipeline/scripts/04_evaluate_model.py
-  
+      
       - name: Test API prediction (smoke test)
         run: |
           pip install fastapi uvicorn python-multipart pillow
-          # 💡 แก้ไข: เพิ่ม . (Current Directory) เข้าไปใน PYTHONPATH
-          # ใน GitHub Actions (Linux) ใช้ export
+          # 🚀 การแก้ไขที่ทำให้ ModuleNotFoundError หายไป
           export PYTHONPATH=$PYTHONPATH:. 
           
           echo "🚀 Starting API for Smoke Test..."
-          python -m uvicorn mlops_pipeline.deployment.app:app --host 0.0.0.0 --port 8000 &
+          python -m uvicorn deployment.app:app --host 0.0.0.0 --port 8000 &
           sleep 10
           
           echo "Checking API Health..."
@@ -122,7 +123,7 @@ jobs:
 
       - name: Transition Model to Staging
         if: success()
-        # 🚨 แก้ไข Argument: เปลี่ยนจาก 'Staging' เป็น 'Latest' เพื่อให้โหลดโมเดลได้สำเร็จ
+        # โมเดลจะถูกโหลดด้วย 'Latest' แล้วย้ายไป 'Staging' เพราะผ่านเกณฑ์ 0.60
         run: python mlops_pipeline/scripts/04_evaluate_model.py "weather-classifier-prod" "Latest"
 
       - name: Upload MLflow artifacts for inspection
@@ -131,5 +132,4 @@ jobs:
         with:
           name: mlflow-artifacts
           path: mlruns/
-
       
