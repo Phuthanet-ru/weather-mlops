@@ -7,11 +7,17 @@ from PIL import Image
 import os
 from pathlib import Path
 
-# กำหนดให้ MLflow ใช้โฟลเดอร์เก็บผลในเครื่อง
-mlflow.set_tracking_uri("file:./mlruns")
+# 💡 บันทึกค่า Remote Tracking URI (จาก Environment Variables)
+# หากมีการตั้งค่าไว้ใน GitHub Actions
+REMOTE_TRACKING_URI = os.environ.get("MLFLOW_TRACKING_URI")
+
+# 💡 กำหนดให้ MLflow ใช้โฟลเดอร์เก็บผล Artifacts ในเครื่องก่อนเสมอ
+# สิ่งนี้ช่วยให้ขั้นตอน 'Copy trained model' ใน main.yml หาไฟล์โมเดลเจอ
+mlflow.set_tracking_uri(f"file:{Path.cwd()}/mlruns") 
 
 ALLOWED_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp')
 
+# ... (ฟังก์ชัน remove_dot_files และ remove_corrupted_images เหมือนเดิม) ...
 def remove_dot_files(root_dir):
     """ลบไฟล์ระบบหรือไฟล์ที่ไม่ใช่ภาพ"""
     count = 0
@@ -54,8 +60,17 @@ def remove_corrupted_images(root_dir):
                     removed += 1
     return removed
 
+
 def train_evaluate_register(preprocessing_run_id=None, epochs=10, lr=0.001):
     mlflow.set_experiment("Weather Classification - Model Training")
+
+    # 💡 หากมี Remote URI ให้ Log Metadata ไปที่ Remote Server ด้วย
+    if REMOTE_TRACKING_URI:
+        # กำหนด URI กลับไปเป็น Remote สำหรับการ Log Metadata (ชื่อ Run, Metrics, Params)
+        mlflow.set_tracking_uri(REMOTE_TRACKING_URI)
+    
+    # 💡 ใช้ชื่อ Artifact Path ที่ชัดเจน และจะใช้ในการค้นหาใน main.yml
+    ARTIFACT_PATH = "model" 
 
     with mlflow.start_run(run_name=f"cnn_lr_{lr}_ep_{epochs}"):
         mlflow.set_tag("ml.step", "model_training_evaluation")
@@ -65,6 +80,8 @@ def train_evaluate_register(preprocessing_run_id=None, epochs=10, lr=0.001):
         IMG_SIZE = (128, 128)
         BATCH_SIZE = 32
         data_path = "mlops_pipeline/data"
+        
+        # ... (โค้ดโหลดและเตรียมข้อมูล) ...
 
         cleaned_count = remove_dot_files(data_path)
         corrupted_count = remove_corrupted_images(data_path)
@@ -116,20 +133,26 @@ def train_evaluate_register(preprocessing_run_id=None, epochs=10, lr=0.001):
         mlflow.log_metric("train_accuracy", history.history["accuracy"][-1])
         mlflow.log_metric("val_accuracy", history.history["val_accuracy"][-1])
 
-        # ✅ LOG MODEL ที่ path เดียวกับที่จะ REGISTER
+        # 1. Log Model (บันทึกไฟล์ Artifacts ลงใน Local Disk)
+        # ต้องทำก่อน Register เพื่อให้ไฟล์อยู่บนดิสก์สำหรับการ Copy
         mlflow.tensorflow.log_model(
-            model=model,     
-            artifact_path="weather_cnn_model",  # ✅ ใช้ชื่อนี้ให้ตรงกัน
+            model=model,    
+            artifact_path=ARTIFACT_PATH,  # ✅ ใช้ชื่อที่กำหนดไว้ 'model'
             input_example=np.zeros((1, 128, 128, 3)),
-            registered_model_name=None
+            registered_model_name=None # ❌ ไม่ลงทะเบียนตรงนี้
         )
 
-        # ✅ REGISTER MODEL
+        # 2. Register Model (ใช้ URI ที่ถูกต้อง)
         val_acc = history.history["val_accuracy"][-1]
         if val_acc >= 0.60:
+            # ใช้ URI จาก Run ปัจจุบัน และ Artifact Path ที่เราตั้งไว้
             run_id = mlflow.active_run().info.run_id
-            model_uri = f"runs:/{run_id}/weather_cnn_model"
+            
+            # 💡 ต้องใช้ Path ที่ MLflow มองเห็น ซึ่งคือ Local Path
+            model_uri = f"runs:/{run_id}/{ARTIFACT_PATH}"
             print(f"🔗 Registering model from URI: {model_uri}")
+            
+            # 💡 ใช้ชื่อ Artifact Path ที่เรากำหนดไว้ 'model' เพื่อให้ถูกต้องกับ Run
             registered_model = mlflow.register_model(
                 model_uri=model_uri,
                 name="weather-classifier-prod"
