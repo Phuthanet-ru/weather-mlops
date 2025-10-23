@@ -98,13 +98,16 @@ def train_evaluate_register(preprocessing_run_id=None, epochs=10, lr=0.001):
               f"ลบไฟล์เสีย {corrupted_count} ไฟล์")
 
         # 💡 สร้างและบันทึกรายงาน Data Validation Artifacts
+        # 💡 แก้ E501 โดยสร้างตัวแปรแยก
+        validation_status = ('PASS' if cleaned_count + corrupted_count == 0
+                           else 'WARNING')
+
         report_content = (
             f"--- Data Validation Report ---\n"
             f"Total files removed (system/invalid): {cleaned_count}\n"
             f"Total corrupted images removed: {corrupted_count}\n"
-            # E501 fix: ตัดบรรทัด
-            f"Validation Check Status: "
-            f"{'PASS' if cleaned_count + corrupted_count == 0 else 'WARNING'}\n"
+            # E501 fix: ใช้ตัวแปร status
+            f"Validation Check Status: {validation_status}\n"
             f"------------------------------\n"
         )
 
