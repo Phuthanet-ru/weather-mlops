@@ -118,14 +118,13 @@ jobs:
         run: |
           echo "📦 Searching for latest trained model in MLflow..."
           
-          # 🚨 แก้ไข: ค้นหาโดยใช้ชื่อโฟลเดอร์ Artifacts ที่เราตั้งไว้ในโค้ด Python
-          MODEL_PATH=$(find mlruns -type f -path "*/artifacts/model/MLmodel" | sort -r | head -1)
+          # 🚨 แก้ไข: ค้นหาไฟล์ MLmodel ที่อยู่ใต้โครงสร้าง mlruns/models/
+          # โครงสร้าง: mlruns/[Experiment ID]/models/[Model ID]/artifacts/MLmodel
+          MODEL_PATH=$(find mlruns -type f -path "*/models/*/artifacts/MLmodel" | sort -r | head -1)
           
           if [ -z "$MODEL_PATH" ]; then
-            echo "❌ Model not found under mlruns/*/*/artifacts/model/"
-            echo "🧩 ตรวจสอบว่า 03_train_model.py ตั้งค่า artifact_path เป็น 'model' หรือไม่"
-            # เพิ่มการตรวจสอบ Log เพื่อช่วย Debug
-            ls -R mlruns 
+            echo "❌ Model not found anywhere under mlruns/*/models/*/artifacts/"
+            # ลบ ls -R mlruns ออกได้เลย ถ้าไม่จำเป็นต้อง debug แล้ว
             exit 1
           fi
           
@@ -133,6 +132,7 @@ jobs:
           echo "📁 Model found at: $MODEL_DIR"
           
           mkdir -p model
+          # cp -r จะคัดลอกไฟล์ทั้งหมด (รวมถึง MLmodel, conda.yaml, data/ ฯลฯ)
           cp -r "$MODEL_DIR"/* model/
           echo "✅ Model copied to ./model/"
           ls -R model
