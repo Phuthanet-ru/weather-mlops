@@ -81,14 +81,14 @@ jobs:
 
       - name: Run Data Preprocessing
         id: preprocessing
-        run: python mlops_pipeline/scripts/02_data_preprocessing.py
+        run: python mlops_pipeline/scripts/02_preprocessing.py
 
       - name: Run Model Training, Evaluation, and Registration
         run: python mlops_pipeline/scripts/03_train_model.py
 
       - name: Transition Model to Staging
         if: success()
-        run: python mlops_pipeline/scripts/04_transition_model.py "weather-classifier-prod" "Staging"
+        run: python mlops_pipeline/scripts/04_evaluate_model.py "weather-classifier-prod" "Staging"
 
       - name: Upload MLflow artifacts for inspection
         if: success()
