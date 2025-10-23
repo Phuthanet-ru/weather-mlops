@@ -165,12 +165,24 @@ jobs:
             exit 1
           fi
 
-      - name: Test API Prediction (with image)
+      - name: Test API Prediction
         run: |
           IMAGE_PATH="test_assets/144090948.jpg"
           echo "🧪 Testing API Prediction using ${IMAGE_PATH}..."
+          
+          # 💡 เพิ่มการตรวจสอบไฟล์
+          if [ ! -f "$IMAGE_PATH" ]; then
+              echo "🚨 ERROR: Test image not found at ${IMAGE_PATH}. Listing current directory contents:"
+              ls -R
+              exit 1
+          fi
+          
+          # 1. ตรวจสอบ Health Check
           curl --fail --retry 5 --retry-delay 5 http://127.0.0.1:8001/
+          
+          # 2. ทดสอบ Prediction
           curl -X POST -F "file=@${IMAGE_PATH}" http://127.0.0.1:8001/predict
+          
           echo "✅ API responded successfully."
 
       - name: Stop and Remove Docker Container
