@@ -132,30 +132,37 @@ jobs:
         with:
           name: mlflow-artifacts
           path: mlruns/
-      # -------------------- 🔹 Docker Build & Test API --------------------
+
+# -------------------- 🔹 Docker Build & Test API --------------------
+
+  # 💡 1. ฆ่า Process Uvicorn เก่าทิ้งก่อน เพื่อให้ Port 8000 ว่าง
+      - name: Kill Uvicorn Process
+        if: success()
+        run: |
+          pkill uvicorn || true
+          echo "🧹 Uvicorn process killed (if running)."
+  
       - name: Build Docker Image
         run: |
           docker build -t weather-mlops-api .
 
       - name: Run Docker Container (background)
         run: |
-          docker run -d -p 8000:8000 --name weather_api weather-mlops-api
-          sleep 10
-          echo "✅ Docker container started successfully."
-
+            # 🚨 แก้ไข Port: ใช้ Port 8000 เหมือนเดิม แต่ต้องแน่ใจว่ามันว่างแล้ว
+            docker run -d -p 8000:8000 --name weather_api weather-mlops-api
+            sleep 10
+            echo "✅ Docker container started successfully. 
       - name: Test API Prediction (with image)
         run: |
-          # 💡 1. กำหนดตัวแปร IMAGE_PATH
-          IMAGE_PATH="test_assets/1440909480.jpg" 
-          
-          echo "🧪 Testing API Prediction using ${IMAGE_PATH}..."
-          # 💡 3. ใช้ตัวแปรใน curl โดยการครอบด้วยเครื่องหมายปีกกา (Bash standard)
-          curl -X POST -F "file=@${IMAGE_PATH}" http://127.0.0.1:8000/predict
-          echo "✅ API responded successfully."
-          
+            IMAGE_PATH="test_assets/1440909480.jpg" 
+            # ... (โค้ดเตรียมไฟล์ภาพทดสอบ) ...
+            echo "🧪 Testing API Prediction using ${IMAGE_PATH}..."       # 🚨 ใช้ Port 8000
+            curl -X POST -F "file=@${IMAGE_PATH}" http://127.0.0.1:8000/predict
+            echo "✅ API responded successfully."  
       - name: Stop and Remove Docker Container
         if: always()
         run: |
           docker stop weather_api
           docker rm weather_api
-          echo "🧹 Cleaned up container"
+          echo "🧹 Cleaned up container
+      
