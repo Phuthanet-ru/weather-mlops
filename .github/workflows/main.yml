@@ -135,52 +135,43 @@ jobs:
 
 # -------------------- 🔹 Docker Build & Test API --------------------
 
-  # 💡 1. ฆ่า Process Uvicorn เก่าทิ้งก่อน เพื่อให้ Port 8000 ว่าง
-      - name: Kill Uvicorn Process
-        if: success()
-        run: |
-         # 💡 ฆ่า process ที่มีชื่อ 'uvicorn' โดยไม่สนว่ามันรันบน port อะไร
-         pkill uvicorn || true
-         echo "🧹 Uvicorn process killed (if running)."
-  
+      # 💡 ใช้ Port 8001 สำหรับ Docker เพื่อเลี่ยงการชนกับ Uvicorn 8000 ที่อาจยังทำงานอยู่
       - name: Build Docker Image
         run: |
-          docker build -t weather-mlops-api .
-
+          docker build -t weather-mlops-api
       - name: Run Docker Container (background)
         run: |
-          docker run -d -p 8000:8000 --name weather_api weather-mlops-api
-          
+          # 🚨 เปลี่ยน Port host เป็น 8001
+          docker run -d -p 8001:8000 --name weather_api weather-mlops-api
+              
           # เพิ่มการรอให้ Container พร้อม
           echo "Waiting for container to start (25s)..."
           sleep 25
-          
+              
           # 💡 ตรวจสอบว่า Container รันอยู่จริงหรือไม่
           if docker ps | grep weather_api; then
-              echo "✅ Docker container started and is RUNNING."
+            echo "✅ Docker container started and is RUNNING on port 8001."
           else
-              echo "🚨 Docker container failed to start. Printing logs..."
-              docker logs weather_api
-              exit 1 # ทำให้ Pipeline ล้มเหลวอย่างชัดเจนถ้า Container รันไม่ขึ้น
-          fi
+            echo "🚨 Docker container failed to start. Printing logs..."
+            docker logs weather_api
+            exit 1 # ทำให้ Pipeline ล้มเหลวอย่างชัดเจนถ้า Container รันไม่ขึ้น
 
       - name: Test API Prediction (with image)
         run: |
           IMAGE_PATH="test_assets/144090948.jpg" 
-          echo "🧪 Testing API Prediction using ${IMAGE_PATH}..."
-          
-          # 💡 ขั้นตอนใหม่: ตรวจสอบ Health Check ก่อน (ถ้า API มี endpoint /)
-          echo "Checking API Health endpoint..."
-          curl --fail --retry 5 --retry-delay 5 http://127.0.0.1:8000/
-          
-          echo "Sending Prediction Request..."
-          curl -X POST -F "file=@${IMAGE_PATH}" http://127.0.0.1:8000/predict
-          echo "✅ API responded successfully."
+          echo "🧪 Testing API Prediction using ${IMAGE_PATH} on port 8001..."
 
+          # 💡 ตรวจสอบ Health Check ที่ Port 8001
+          echo "Checking API Health endpoint..."
+          curl --fail --retry 5 --retry-delay 5 http://127.0.0.1:8001/
+
+          echo "Sending Prediction Request..."
+          # 🚨 เปลี่ยน Port ใน curl เป็น 8001
+          curl -X POST -F "file=@${IMAGE_PATH}" http://127.0.0.1:8001/predict
+          echo "✅ API responded successfully
       - name: Stop and Remove Docker Container
         if: always()
         run: |
           docker stop weather_api
           docker rm weather_api
-          echo "🧹 Cleaned up container"
-      
+          echo "🧹 Cleaned up containe
