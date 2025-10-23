@@ -7,8 +7,8 @@ from PIL import Image
 import os
 from pathlib import Path
 import argparse
-import shutil # 🚨  เพิ่ม import shutil สำหรับการลบ
-              #  directory ที่ไม่ใช่ directory ว่าง
+import shutil #  🚨  เพิ่ม import shutil สำหรับการลบ
+#  directory ที่ไม่ใช่ directory ว่าง
 
 
 # 💡 บันทึกค่า Remote Tracking URI (จาก Environment Variables)
@@ -29,7 +29,7 @@ def remove_dot_files(root_dir):
     for root, dirs, files in os.walk(root_dir, topdown=False):
         for d in list(dirs):
             if d.startswith('.'):
-                full_path = os.path.join(root, d) 
+                full_path = os.path.join(root, d)
                 #  💡 ต้องกำหนด full_path ก่อนลบ
                 try:
                     #  🚨 แก้ไข: ใช้ shutil.rmtree แทน
