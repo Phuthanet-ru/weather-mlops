@@ -10,19 +10,34 @@ ALLOWED_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp')
 def remove_dot_files(root_dir):
     """ลบไฟล์ระบบหรือไฟล์ที่ไม่ใช่ภาพ (จำลองจาก 03_train_model.py)"""
     count = 0
-    # ... (คัดลอกโค้ดเต็มของ remove_dot_files มาไว้ที่นี่ หรือ import อย่างถูกต้อง)
-    # เนื่องจากไม่เห็นโค้ดเต็มในไฟล์ tests เราจะจำลองการทำงาน
-    
+    if not os.path.isabs(root_dir):
+        root_dir = os.path.join(os.getcwd(), root_dir)
     for root, dirs, files in os.walk(root_dir, topdown=False):
         for d in list(dirs):
             if d.startswith('.'):
+                full_path = os.path.join(root, d) # 🚨 ต้องกำหนด full_path
                 try:
-                    os.rmdir(os.path.join(root, d))
+                    # ✅ แก้ไข: ใช้ shutil.rmtree เพื่อลบโฟลเดอร์ dot
+                    shutil.rmtree(full_path) 
                     dirs.remove(d)
                     count += 1
-                except OSError:
+                except Exception: # เปลี่ยนเป็น Exception เพื่อดักจับทุกข้อผิดพลาดในการลบ
                     pass
-        # ... (ส่วนการลบไฟล์ dot และไฟล์ที่ไม่ใช่ภาพ) ...
+            
+            for file in files:
+                full_path = os.path.join(root, file)
+                # E501 fix: ตัดบรรทัดให้สั้นลง
+                is_dot_file = file.startswith('.') or \
+                    file.lower() in ['thumbs.db', '.ds_store', 'desktop.ini']
+                # E501 fix: ตัดบรรทัดให้สั้นลง
+                is_invalid_image = not file.lower().endswith(
+                    ALLOWED_EXTENSIONS)
+                if is_dot_file or is_invalid_image:
+                    try:
+                        os.remove(full_path)
+                        count += 1
+                    except Exception as e:
+                        print(f"ไม่สามารถลบไฟล์ {full_path}: {e}")
     return count
 
 

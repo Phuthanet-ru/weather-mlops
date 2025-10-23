@@ -35,6 +35,7 @@ def remove_dot_files(root_dir):
                     count += 1
                 except Exception:
                     pass
+
             for file in files:
                 full_path = os.path.join(root, file)
                 # E501 fix: ตัดบรรทัดให้สั้นลง
