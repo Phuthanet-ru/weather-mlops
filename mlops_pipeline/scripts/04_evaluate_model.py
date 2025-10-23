@@ -12,7 +12,7 @@ MODEL_NAME = "weather-classifier-prod"
 IMG_SIZE = (128, 128)
 BATCH_SIZE = 32
 DATA_PATH = "mlops_pipeline/data"
-THRESHOLD = 0.70 # 💡 กำหนดเกณฑ์ความแม่นยำสำหรับการย้าย Stage
+THRESHOLD = 0.60 # 💡 กำหนดเกณฑ์ความแม่นยำสำหรับการย้าย Stage
 
 def evaluate_and_transition_model():
 

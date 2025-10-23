@@ -108,9 +108,17 @@ jobs:
       - name: Test API prediction (smoke test)
         run: |
           pip install fastapi uvicorn python-multipart pillow
+          # 💡 แก้ไข: เพิ่ม . (Current Directory) เข้าไปใน PYTHONPATH
+          # ใน GitHub Actions (Linux) ใช้ export
+          export PYTHONPATH=$PYTHONPATH:. 
+          
+          echo "🚀 Starting API for Smoke Test..."
           python -m uvicorn mlops_pipeline.deployment.app:app --host 0.0.0.0 --port 8000 &
           sleep 10
+          
+          echo "Checking API Health..."
           curl -X 'GET' 'http://127.0.0.1:8000/' | grep "Weather Classifier API"
+          echo "✅ API Smoke Test completed."
 
       - name: Transition Model to Staging
         if: success()
