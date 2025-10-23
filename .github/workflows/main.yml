@@ -97,6 +97,18 @@ jobs:
 
       - name: Run Model Training, Evaluation, and Registration
         run: python mlops_pipeline/scripts/03_train_model.py
+      
+      # 💡 ขั้นตอนใหม่: ตรวจสอบโครงสร้าง MLflow artifacts
+      - name: Debug MLflow Artifacts Structure
+        run: |
+          echo "Current directory contents:"
+          ls -a
+          echo "---"
+          echo "Contents of mlruns folder:"
+          ls -R mlruns || (echo "mlruns directory not found or is empty." && exit 1)
+          echo "---"
+          echo "Attempting flexible find again:"
+          find mlruns -type f -path "*/artifacts/*"
 
       - name: Run Model Full Evaluation
         run: python mlops_pipeline/scripts/04_evaluate_model.py
