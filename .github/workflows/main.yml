@@ -156,6 +156,7 @@ jobs:
             echo "🚨 Docker container failed to start. Printing logs..."
             docker logs weather_api
             exit 1 # ทำให้ Pipeline ล้มเหลวอย่างชัดเจนถ้า Container รันไม่ขึ้น
+          fi
 
       - name: Test API Prediction (with image)
         run: |
