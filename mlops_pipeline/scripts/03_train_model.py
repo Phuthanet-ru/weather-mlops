@@ -118,7 +118,7 @@ def train_evaluate_register(preprocessing_run_id=None, epochs=10, lr=0.001):
 
         # ✅ LOG MODEL ที่ path เดียวกับที่จะ REGISTER
         mlflow.tensorflow.log_model(
-            tf_model=model,
+            model=model,     
             artifact_path="weather_cnn_model",  # ✅ ใช้ชื่อนี้ให้ตรงกัน
             input_example=np.zeros((1, 128, 128, 3)),
             registered_model_name=None
