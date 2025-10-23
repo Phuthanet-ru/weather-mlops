@@ -106,11 +106,11 @@ jobs:
         run: |
           echo "📦 Searching for latest trained model in MLflow..."
           
-          # หา path ที่มีไฟล์ MLmodel ล่าสุดในโฟลเดอร์ artifacts
-          MODEL_PATH=$(find mlruns -type f -path "*/artifacts/weather_cnn_model/MLmodel" | sort -r | head -1)
+          # หา path ที่มีไฟล์ MLmodel ล่าสุดในโฟลเดอร์ artifacts/model/
+          MODEL_PATH=$(find mlruns -type f -path "*/artifacts/model/MLmodel" | sort -r | head -1)
           
           if [ -z "$MODEL_PATH" ]; then
-            echo "❌ Model not found under mlruns/*/*/artifacts/weather_cnn_model/"
+            echo "❌ Model not found under mlruns/*/*/artifacts/model/"
             echo "🧩 ตรวจสอบว่า pipeline สร้างโมเดลใน 03_train_model.py สำเร็จหรือยัง"
             exit 1
           fi

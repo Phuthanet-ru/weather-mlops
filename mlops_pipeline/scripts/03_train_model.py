@@ -149,7 +149,12 @@ def train_evaluate_register(preprocessing_run_id=None, epochs=10, lr=0.001):
         mlflow.log_metric("val_accuracy", history.history["val_accuracy"][-1])
 
         # ✅ Log model
-        mlflow.tensorflow.log_model(model, "weather_cnn_model")
+        mlflow.tensorflow.log_model(
+            model=model,
+            artifact_path="model",
+            input_example=np.zeros((1, 128, 128, 3)),  # ใส่ input example ช่วย infer signature
+            registered_model_name="weather-classifier-prod"
+        )
 
         # ✅ ตรวจสอบเกณฑ์เพื่อ register model
         val_acc = history.history["val_accuracy"][-1]
