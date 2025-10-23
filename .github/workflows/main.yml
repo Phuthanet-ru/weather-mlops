@@ -138,7 +138,8 @@ jobs:
       # 💡 ใช้ Port 8001 สำหรับ Docker เพื่อเลี่ยงการชนกับ Uvicorn 8000 ที่อาจยังทำงานอยู่
       - name: Build Docker Image
         run: |
-          docker build -t weather-mlops-api
+          docker build -t weather-mlops-api .
+          
       - name: Run Docker Container (background)
         run: |
           # 🚨 เปลี่ยน Port host เป็น 8001
@@ -169,9 +170,11 @@ jobs:
           # 🚨 เปลี่ยน Port ใน curl เป็น 8001
           curl -X POST -F "file=@${IMAGE_PATH}" http://127.0.0.1:8001/predict
           echo "✅ API responded successfully
+
       - name: Stop and Remove Docker Container
         if: always()
         run: |
-          docker stop weather_api
-          docker rm weather_api
-          echo "🧹 Cleaned up containe
+          # 💡 เพิ่ม || true เพื่อให้ขั้นตอนไม่ล้มเหลว แม้ Container จะไม่มีอยู่
+          docker stop weather_api || true
+          docker rm weather_api || true
+          echo "🧹 Cleaned up container"
