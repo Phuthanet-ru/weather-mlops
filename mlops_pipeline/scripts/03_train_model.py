@@ -29,16 +29,11 @@ def remove_dot_files(root_dir):
         for d in list(dirs):
             if d.startswith('.'):
                 full_path = os.path.join(root, d)
-                #  💡 ต้องกำหนด full_path ก่อนลบ
                 try:
-                    #  🚨 แก้ไข: ใช้ shutil.rmtree แทน
-                    # os.rmdir เพื่อลบ directory ที่ซ่อนอยู่
                     shutil.rmtree(full_path)
                     dirs.remove(d)
                     count += 1
-                except OSError:
-                    # ใน test case ของคุณ โฟลเดอร์ว่างและควรลบได้
-                    # แต่ถ้ามีไฟล์อยู่ shutil.rmtree จะทำงาน
+                except Exception:
                     pass
             for file in files:
                 full_path = os.path.join(root, file)
