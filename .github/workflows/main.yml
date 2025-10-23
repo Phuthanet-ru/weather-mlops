@@ -104,14 +104,15 @@ jobs:
       # ✅ Copy model artifacts for Docker build
       - name: Copy trained model to deployment folder
         run: |
-          echo "📦 Searching for latest trained model in MLflow..."
+          echo "📦 Searching for latest trained model in MLflow (Flexible Search)..."
           
-          # หา path ที่มีไฟล์ MLmodel ล่าสุดในโฟลเดอร์ artifacts/model/
-          MODEL_PATH=$(find mlruns -type f -path "*/artifacts/model/MLmodel" | sort -r | head -1)
+          # 🚨 แก้ไข: ค้นหาไฟล์ MLmodel ที่ไหนก็ได้ที่อยู่ใต้โฟลเดอร์ 'artifacts'
+          # วิธีนี้จะครอบคลุมกรณีที่โฟลเดอร์ Artifacts เป็น 'model' หรือ 'weather_cnn_model'
+          MODEL_PATH=$(find mlruns -type f -path "*/artifacts/*/MLmodel" | sort -r | head -1)
           
           if [ -z "$MODEL_PATH" ]; then
-            echo "❌ Model not found under mlruns/*/*/artifacts/model/"
-            echo "🧩 ตรวจสอบว่า pipeline สร้างโมเดลใน 03_train_model.py สำเร็จหรือยัง"
+            echo "❌ Model not found anywhere under mlruns/*/artifacts/*/"
+            echo "🧩 ตรวจสอบว่าไฟล์ MLmodel ถูกสร้างในโฟลเดอร์ artifacts ของ MLflow Run หรือยัง"
             exit 1
           fi
           
