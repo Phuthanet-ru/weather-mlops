@@ -139,7 +139,9 @@ jobs:
       - name: Kill Uvicorn Process
         if: success()
         run: |
-          pkill uvicorn || true
+          # ฆ่า process ที่กำลังฟัง port 8000
+          # || true ถูกเพิ่มเพื่อให้ Step นี้ไม่ล้มเหลวแม้ว่าจะไม่มี process รันอยู่
+          lsof -t -i :8000 | xargs kill || true
           echo "🧹 Uvicorn process killed (if running)."
   
       - name: Build Docker Image
@@ -148,10 +150,11 @@ jobs:
 
       - name: Run Docker Container (background)
         run: |
-            # 🚨 แก้ไข Port: ใช้ Port 8000 เหมือนเดิม แต่ต้องแน่ใจว่ามันว่างแล้ว
-            docker run -d -p 8000:8000 --name weather_api weather-mlops-api
-            sleep 10
-            echo "✅ Docker container started successfully. 
+          # Port 8000 ควรจะว่างแล้ว
+          docker run -d -p 8000:8000 --name weather_api weather-mlops-api
+          sleep 10
+          echo "✅ Docker container started successfully."
+
       - name: Test API Prediction (with image)
         run: |
             IMAGE_PATH="test_assets/1440909480.jpg" 
