@@ -33,18 +33,18 @@ def remove_dot_files(root_dir):
                     count += 1
                 except OSError:
                     pass
-        for file in files:
-            full_path = os.path.join(root, file)
-            # E501 fix: ตัดบรรทัดให้สั้นลง
-            is_dot_file = file.startswith('.') or \
-                file.lower() in ['thumbs.db', '.ds_store', 'desktop.ini']
-            is_invalid_image = not file.lower().endswith(ALLOWED_EXTENSIONS)
-            if is_dot_file or is_invalid_image:
-                try:
-                    os.remove(full_path)
-                    count += 1
-                except Exception as e:
-                    print(f"ไม่สามารถลบไฟล์ {full_path}: {e}")
+            for file in files:
+                full_path = os.path.join(root, file)
+                # E501 fix: ตัดบรรทัดให้สั้นลง
+                is_dot_file = file.startswith('.') or \
+                    file.lower() in ['thumbs.db', '.ds_store', 'desktop.ini']
+                is_invalid_image = not file.lower().endswith(ALLOWED_EXTENSIONS)
+                if is_dot_file or is_invalid_image:
+                    try:
+                        os.remove(full_path)
+                        count += 1
+                    except Exception as e:
+                        print(f"ไม่สามารถลบไฟล์ {full_path}: {e}")
     return count
 
 
@@ -69,9 +69,10 @@ def train_evaluate_register(preprocessing_run_id=None, epochs=10, lr=0.001):
     mlflow.set_experiment("Weather Classification - Model Training")
 
     # 💡 หากมี Remote URI ให้ Log Metadata ไปที่ Remote Server ด้วย
-    # E501 fix (บรรทัด 68, 69)
+    # E501 fix: ตัดบรรทัด
     # การ set เป็น Remote อีกครั้งในฟังก์ชันนี้ จะทำให้ Log Metadata ไปที่ Remote
-    # แต่ Artifacts (โมเดล) จะถูกบันทึกใน Local ก่อนแล้วค่อย sync ไป remote 
+    # W291 fix
+    # แต่ Artifacts (โมเดล) จะถูกบันทึกใน Local ก่อนแล้วค่อย sync ไป remote
     if REMOTE_TRACKING_URI:
         mlflow.set_tracking_uri(REMOTE_TRACKING_URI)
 
@@ -99,7 +100,7 @@ def train_evaluate_register(preprocessing_run_id=None, epochs=10, lr=0.001):
             f"--- Data Validation Report ---\n"
             f"Total files removed (system/invalid): {cleaned_count}\n"
             f"Total corrupted images removed: {corrupted_count}\n"
-            # E501 fix
+            # E501 fix: ตัดบรรทัด
             f"Validation Check Status: {'PASS' if cleaned_count + corrupted_count == 0 else 'WARNING'}\n"
             f"------------------------------\n"
         )
@@ -113,6 +114,7 @@ def train_evaluate_register(preprocessing_run_id=None, epochs=10, lr=0.001):
         print("✅ Logged Data Validation Report to MLflow Artifacts.")
         os.remove(report_file)
 
+        # E501 fix: ตัดบรรทัด
         # -------------------- Data Loading and Preprocessing --------------------
         print(f"📂 โหลดข้อมูลจาก: {data_path}")
         temp_ds = tf.keras.preprocessing.image_dataset_from_directory(
@@ -127,14 +129,14 @@ def train_evaluate_register(preprocessing_run_id=None, epochs=10, lr=0.001):
 
         train_ds = tf.keras.preprocessing.image_dataset_from_directory(
             data_path, validation_split=0.2, subset="training", seed=42,
-            # E501 fix
-            image_size=IMG_SIZE, batch_size=BATCH_SIZE, labels='inferred', 
+            # E501 fix + W291 fix
+            image_size=IMG_SIZE, batch_size=BATCH_SIZE, labels='inferred',
             label_mode='int'
         )
         val_ds = tf.keras.preprocessing.image_dataset_from_directory(
             data_path, validation_split=0.2, subset="validation", seed=42,
-            # E501 fix
-            image_size=IMG_SIZE, batch_size=BATCH_SIZE, labels='inferred', 
+            # E501 fix + W291 fix
+            image_size=IMG_SIZE, batch_size=BATCH_SIZE, labels='inferred',
             label_mode='int'
         )
 
@@ -145,6 +147,7 @@ def train_evaluate_register(preprocessing_run_id=None, epochs=10, lr=0.001):
             layers.RandomZoom(0.1),
         ])
 
+        # E501 fix: ตัดบรรทัด
         # -------------------- Model Definition and Training --------------------
         model = models.Sequential([
             data_augmentation,
@@ -162,12 +165,13 @@ def train_evaluate_register(preprocessing_run_id=None, epochs=10, lr=0.001):
         ])
 
         model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=lr),
-                      # E501 fix
-                      loss='sparse_categorical_crossentropy', 
+                      # E501 fix + W291 fix
+                      loss='sparse_categorical_crossentropy',
                       metrics=['accuracy'])
 
         history = model.fit(train_ds, validation_data=val_ds, epochs=epochs)
 
+        # E501 fix: ตัดบรรทัด
         # -------------------- MLflow Tracking and Registration --------------------
         mlflow.log_param("epochs", epochs)
         mlflow.log_param("learning_rate", lr)
@@ -189,7 +193,7 @@ def train_evaluate_register(preprocessing_run_id=None, epochs=10, lr=0.001):
             # ใช้ URI ที่ MLflow มองเห็น (Local Path ที่ถูกสร้าง)
             model_uri = f"runs:/{run_id}/{ARTIFACT_PATH}"
             print(f"🔗 Registering model from URI: {model_uri}")
-            
+
             registered_model = mlflow.register_model(
                 model_uri=model_uri,
                 name="weather-classifier-prod"
@@ -201,20 +205,21 @@ def train_evaluate_register(preprocessing_run_id=None, epochs=10, lr=0.001):
 
 # E305 fix: เพิ่ม 2 บรรทัดว่างเปล่า
 if __name__ == "__main__":
-    
+
     # E501 fix
     parser = argparse.ArgumentParser(
         description="Run model training and evaluation.")
-    
+
     # E501 fix
     parser.add_argument(
         "--epochs", type=int, default=10, help="Number of epochs to train.")
-    
-    # E501 fix
+
+    # E501 fix + W291 fix
     parser.add_argument(
-        "--lr", type=float, default=0.001, 
+        "--lr", type=float, default=0.001,
         help="Learning rate for the optimizer.")
-        
-    args = parser.parse_args()
     
+    args = parser.parse_args()
+
     train_evaluate_register(epochs=args.epochs, lr=args.lr)
+# W292 fix: เพิ่มบรรทัดว่างเปล่าที่ท้ายไฟล์

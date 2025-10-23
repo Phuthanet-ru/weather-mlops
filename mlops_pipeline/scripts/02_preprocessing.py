@@ -48,5 +48,8 @@ def preprocess_data(data_dir="data", img_size=(128, 128), batch_size=32):
                 # บันทึก run_id เป็น output สำหรับ Job ต่อไป
                 print(f"run_id={run_id}", file=f)
 
+
+# E305 fix: เพิ่ม 2 บรรทัดว่าง
 if __name__ == "__main__":
     preprocess_data("mlops_pipeline/data")
+# W292 fix: เพิ่มบรรทัดว่างเปล่าที่ท้ายไฟล์

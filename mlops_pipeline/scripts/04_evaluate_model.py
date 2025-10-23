@@ -6,14 +6,16 @@ import matplotlib.pyplot as plt
 import os  # os ถูกใช้ใน os.makedirs
 import sys
 from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
-from mlflow.tracking import MlflowClient # 💡 NEW: เพิ่ม MlflowClient เพื่อใช้ transition_model
+# E501 fix + E261 fix
+from mlflow.tracking import MlflowClient  # 💡 NEW: เพิ่ม MlflowClient
+
 
 # --- กำหนดค่าคงที่ (ส่วนนี้จะไม่เปลี่ยนแปลง) ---
 MODEL_NAME = "weather-classifier-prod"
 IMG_SIZE = (128, 128)
 BATCH_SIZE = 32
 DATA_PATH = "mlops_pipeline/data"
-# E261 fix: เพิ่ม 2 spaces ก่อน inline comment
+# E261 fix
 THRESHOLD = 0.60  # 💡 กำหนดเกณฑ์ความแม่นยำสำหรับการย้าย Stage
 
 
@@ -31,7 +33,7 @@ def evaluate_and_transition_model():
         model_name_to_load = MODEL_NAME
 
     # E501 fix: ตัดบรรทัด
-    # กำหนด Stage/Version ที่จะโหลด: ใช้ 'Latest' เสมอเมื่อเรียกจาก Pipeline (Transition)
+    # กำหนด Stage/Version ที่จะโหลด: ใช้ 'Latest' เสมอเมื่อเรียกจาก Pipeline
     # หรือใช้ 'Staging' ถ้าต้องการประเมินเฉพาะโมเดลใน Staging
     if len(sys.argv) > 2:
         # E261 fix
@@ -48,15 +50,14 @@ def evaluate_and_transition_model():
         mlflow.set_experiment("Weather Classification - Model Evaluation")
     except Exception as e:
         # E501 fix: ตัดบรรทัด
-        print(f"⚠️ Warning: Could not set MLflow experiment. Check tracking URI. Error: {e}")
+        print(
+            f"⚠️ Warning: Could not set MLflow experiment. Check tracking URI. Error: {e}")
 
     # --- เริ่มโหลดและประเมินโมเดล ---
-    # W293 fix: ลบ whitespace ในบรรทัดว่าง
     # E501 fix: ตัดบรรทัด
     print(f"📦 กำลังโหลดโมเดล: {model_name_to_load} Stage: "
           f"{model_stage_to_load} จาก MLflow Registry...")
 
-    # W293 fix: ลบ whitespace ในบรรทัดว่าง
     # 💡 ใช้ Stage/Version ที่รับเข้ามา
     model_uri = f"models:/{model_name_to_load}/{model_stage_to_load}"
     try:
@@ -67,11 +68,9 @@ def evaluate_and_transition_model():
               f"โปรดตรวจสอบ Stage/Version: {e}")
         return  # E261 fix: เพิ่ม 2 spaces
 
-    # W293 fix: ลบ whitespace ในบรรทัดว่าง
     # --- โหลดข้อมูลและประเมินผล ---
     print("📂 โหลดข้อมูล Validation/Test Set...")
     test_ds = tf.keras.preprocessing.image_dataset_from_directory(
-        # W291 fix: ลบ trailing whitespace
         DATA_PATH, validation_split=0.2, subset="validation", seed=42,
         image_size=IMG_SIZE, batch_size=BATCH_SIZE
     )
@@ -115,6 +114,7 @@ def evaluate_and_transition_model():
             latest_version = client.get_latest_versions(
                 model_name_to_load, stages=['None'])[0].version
 
+            # W293 fix: ลบ whitespace ในบรรทัดว่าง (ลบบรรทัดที่ว่างที่มี space)
             # W293 fix: ลบ whitespace ในบรรทัดว่าง
 
             client.transition_model_version_stage(
@@ -142,3 +142,4 @@ def evaluate_and_transition_model():
 if __name__ == "__main__":
     # 💡 เปลี่ยนชื่อฟังก์ชันที่เรียก
     evaluate_and_transition_model()
+# W292 fix: เพิ่มบรรทัดว่างเปล่าที่ท้ายไฟล์

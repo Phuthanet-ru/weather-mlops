@@ -29,9 +29,10 @@ except Exception as e:
         # หาก model.keras อยู่ใน ./model/data/
         model = tf.keras.models.load_model(f"{MODEL_PATH}/data")
     except Exception as keras_e:
+        # E501 fix: ตัดบรรทัด
         raise RuntimeError(
-            f"❌ Critical Error: Cannot load model via MLflow or Keras. Details: {keras_e}"
-        )
+            f"❌ Critical Error: Cannot load model via MLflow or Keras. "
+            f"Details: {keras_e}")
 
 CLASS_NAMES = ["cloudy", "foggy", "rainy", "snowy", "sunny"]
 IMG_SIZE = (128, 128)
@@ -45,8 +46,12 @@ def root():
 @app.post("/predict")
 async def predict(file: UploadFile = File(...)):
     if model is None:
-        return JSONResponse({"error": "Model not initialized."}, status_code=500)
-    
+        # E501 fix: ตัดบรรทัด
+        return JSONResponse(
+            {"error": "Model not initialized."}, status_code=500)
+
+    # W293 fix: ลบ whitespace ในบรรทัดว่าง
+
     try:
         image_bytes = await file.read()
         image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
@@ -56,7 +61,9 @@ async def predict(file: UploadFile = File(...)):
         image_array = np.expand_dims(np.array(image), axis=0)
 
         preds = model.predict(image_array)
-        # เนื่องจากโมเดลใช้ 'softmax' การทำนายจึงเป็นค่าความน่าจะเป็นอยู่แล้ว (ไม่จำเป็นต้องใช้ tf.nn.softmax อีก)
+        # E501 fix: ตัดบรรทัด
+        # เนื่องจากโมเดลใช้ 'softmax' การทำนายจึงเป็นค่าความน่าจะเป็นอยู่แล้ว
+        # (ไม่จำเป็นต้องใช้ tf.nn.softmax อีก)
         pred_class = CLASS_NAMES[np.argmax(preds)]
         confidence = float(np.max(preds))
 
@@ -67,3 +74,4 @@ async def predict(file: UploadFile = File(...)):
 
     except Exception as e:
         return JSONResponse({"error": str(e)}, status_code=500)
+# W292 fix: เพิ่มบรรทัดว่างเปล่าที่ท้ายไฟล์

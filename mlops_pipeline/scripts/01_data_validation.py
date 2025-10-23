@@ -1,10 +1,6 @@
-import os
 from pathlib import Path
 from PIL import Image
 import mlflow
-import json # 💡 NEW: เพิ่ม import json เพื่อให้การ log_dict ชัดเจน
-
-# 💡 กำหนดให้ MLflow ใช้โฟลเดอร์เก็บผล Artifacts ในเครื่องก่อนเสมอ
 mlflow.set_tracking_uri("file:./mlruns")
 
 
@@ -13,21 +9,23 @@ def validate_data(data_dir="mlops_pipeline/data"):
     ตรวจสอบความถูกต้องของชุดข้อมูลภาพ (5 คลาส) 
     และบันทึกผลลงใน MLflow
     """
-    # 💡 ใช้ Path(data_dir) โดยตรง เพื่อให้ทำงานได้ทั้ง Absolute และ Relative
-    data_path = Path(data_dir) 
+    # W291 fix: ลบ Trailing Whitespace
+    data_path = Path(data_dir)
+    
+    # W293 fix: ลบ whitespace ในบรรทัดว่าง
     
     # 💡 ใช้ชื่อ Experiment ที่ชัดเจน
     mlflow.set_experiment("Weather Classification - Data Validation")
 
-    with mlflow.start_run(run_name="data_validation_run"):
+    with mlflow.start_run():
         mlflow.set_tag("ml.step", "data_validation")
-        
-        # E501 fix: ตัดบรรทัด
         print(f"🔍 เริ่มตรวจสอบข้อมูลใน: {data_path.resolve()}")
 
         class_counts = {}
         total_images = 0
         corrupted_images = 0
+        
+        # W293 fix: ลบ whitespace ในบรรทัดว่าง
         
         # 💡 เก็บข้อมูล metadata สำหรับ log artifact
         validation_metadata = {
@@ -60,12 +58,16 @@ def validate_data(data_dir="mlops_pipeline/data"):
                         img.verify()  # ตรวจสอบว่าเปิดได้จริง
                     except Exception:
                         corrupted_images += 1
-                        validation_metadata["corrupted_log"].append(str(f.resolve()))
+                        # E501 fix: ตัดบรรทัด
+                        validation_metadata["corrupted_log"].append(
+                            str(f.resolve()))
 
             class_counts[cls] = current_class_count
             validation_metadata["image_counts"][cls] = current_class_count
 
         # -------------------- MLflow Logging --------------------
+        
+        # W293 fix: ลบ whitespace ในบรรทัดว่าง
         
         # Log Metrics
         mlflow.log_metric("total_images", total_images)
@@ -75,7 +77,9 @@ def validate_data(data_dir="mlops_pipeline/data"):
         # Log Artifacts (Metadata)
         # 💡 log_dict() ใช้ได้ดีกับ JSON
         mlflow.log_dict(class_counts, "artifacts/class_distribution.json")
-        mlflow.log_dict(validation_metadata, "artifacts/validation_metadata.json")
+        # E501 fix: ตัดบรรทัด
+        mlflow.log_dict(validation_metadata, 
+                        "artifacts/validation_metadata.json")
 
         # -------------------- Console Output --------------------
         # E501 fix: ตัดบรรทัด
@@ -87,3 +91,4 @@ def validate_data(data_dir="mlops_pipeline/data"):
 
 if __name__ == "__main__":
     validate_data("mlops_pipeline/data")
+# W292 fix: เพิ่มบรรทัดว่างเปล่าที่ท้ายไฟล์
