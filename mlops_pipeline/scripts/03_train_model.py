@@ -38,7 +38,9 @@ def remove_dot_files(root_dir):
                 # E501 fix: ตัดบรรทัดให้สั้นลง
                 is_dot_file = file.startswith('.') or \
                     file.lower() in ['thumbs.db', '.ds_store', 'desktop.ini']
-                is_invalid_image = not file.lower().endswith(ALLOWED_EXTENSIONS)
+                # E501 fix: ตัดบรรทัดให้สั้นลง
+                is_invalid_image = not file.lower().endswith(
+                    ALLOWED_EXTENSIONS)
                 if is_dot_file or is_invalid_image:
                     try:
                         os.remove(full_path)
@@ -71,7 +73,6 @@ def train_evaluate_register(preprocessing_run_id=None, epochs=10, lr=0.001):
     # 💡 หากมี Remote URI ให้ Log Metadata ไปที่ Remote Server ด้วย
     # E501 fix: ตัดบรรทัด
     # การ set เป็น Remote อีกครั้งในฟังก์ชันนี้ จะทำให้ Log Metadata ไปที่ Remote
-    # W291 fix
     # แต่ Artifacts (โมเดล) จะถูกบันทึกใน Local ก่อนแล้วค่อย sync ไป remote
     if REMOTE_TRACKING_URI:
         mlflow.set_tracking_uri(REMOTE_TRACKING_URI)
@@ -129,13 +130,13 @@ def train_evaluate_register(preprocessing_run_id=None, epochs=10, lr=0.001):
 
         train_ds = tf.keras.preprocessing.image_dataset_from_directory(
             data_path, validation_split=0.2, subset="training", seed=42,
-            # E501 fix + W291 fix
+            # E501 fix
             image_size=IMG_SIZE, batch_size=BATCH_SIZE, labels='inferred',
             label_mode='int'
         )
         val_ds = tf.keras.preprocessing.image_dataset_from_directory(
             data_path, validation_split=0.2, subset="validation", seed=42,
-            # E501 fix + W291 fix
+            # E501 fix
             image_size=IMG_SIZE, batch_size=BATCH_SIZE, labels='inferred',
             label_mode='int'
         )
@@ -165,7 +166,7 @@ def train_evaluate_register(preprocessing_run_id=None, epochs=10, lr=0.001):
         ])
 
         model.compile(optimizer=tf.keras.optimizers.Adam(learning_rate=lr),
-                      # E501 fix + W291 fix
+                      # E501 fix
                       loss='sparse_categorical_crossentropy',
                       metrics=['accuracy'])
 
@@ -214,11 +215,11 @@ if __name__ == "__main__":
     parser.add_argument(
         "--epochs", type=int, default=10, help="Number of epochs to train.")
 
-    # E501 fix + W291 fix
+    # E501 fix
     parser.add_argument(
         "--lr", type=float, default=0.001,
         help="Learning rate for the optimizer.")
-    
+
     args = parser.parse_args()
 
     train_evaluate_register(epochs=args.epochs, lr=args.lr)

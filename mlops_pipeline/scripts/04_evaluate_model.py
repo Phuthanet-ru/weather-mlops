@@ -40,11 +40,11 @@ def evaluate_and_transition_model():
         model_stage_to_load = sys.argv[2]  # 'Latest'
     else:
         # E501 fix + E261 fix
-        model_stage_to_load = "Latest"  # Default ให้โหลด Latest เสมอสำหรับการประเมิน
+        model_stage_to_load = "Latest"  
+        # Default ให้โหลด Latest เสมอสำหรับการประเมิน
 
     # 2. 💡 กำหนดค่า MLflow Client
     # E501 fix: ตัดบรรทัด
-    # MLflow จะใช้ ENV VARS (MLFLOW_TRACKING_URI, USERNAME, PASSWORD) โดยอัตโนมัติ
     # เราจึงแค่เรียก set_experiment
     try:
         mlflow.set_experiment("Weather Classification - Model Evaluation")
@@ -110,12 +110,9 @@ def evaluate_and_transition_model():
         try:
             client = MlflowClient()
             # E501 fix: ตัดบรรทัด
-            # ค้นหา Version ที่เป็น 'Latest' (ที่เพิ่ง Register และยังไม่มี Stage)
+
             latest_version = client.get_latest_versions(
                 model_name_to_load, stages=['None'])[0].version
-
-            # W293 fix: ลบ whitespace ในบรรทัดว่าง (ลบบรรทัดที่ว่างที่มี space)
-            # W293 fix: ลบ whitespace ในบรรทัดว่าง
 
             client.transition_model_version_stage(
                 name=model_name_to_load,
