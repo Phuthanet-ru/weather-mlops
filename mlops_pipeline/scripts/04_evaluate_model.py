@@ -40,7 +40,7 @@ def evaluate_and_transition_model():
         model_stage_to_load = sys.argv[2]  # 'Latest'
     else:
         # E501 fix + E261 fix + W291 fix
-        model_stage_to_load = "Latest"  # Default ให้โหลด Latest เสมอสำหรับการประเมิน
+        model_stage_to_load = "Latest"  # Default ให้โหลด Latest เสมอ
 
     # 2. 💡 กำหนดค่า MLflow Client
     # E501 fix: ตัดบรรทัด
@@ -51,7 +51,8 @@ def evaluate_and_transition_model():
     except Exception as e:
         # E501 fix: ตัดบรรทัด
         print(
-            f"⚠️ Warning: Could not set MLflow experiment. Check tracking URI. Error: {e}")
+            f"⚠️ Warning: Could not set MLflow experiment. "
+            f"Check tracking URI. Error: {e}")
 
     # --- เริ่มโหลดและประเมินโมเดล ---
     # E501 fix: ตัดบรรทัด

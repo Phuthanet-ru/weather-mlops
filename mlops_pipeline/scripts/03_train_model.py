@@ -71,6 +71,7 @@ def train_evaluate_register(preprocessing_run_id=None, epochs=10, lr=0.001):
     mlflow.set_experiment("Weather Classification - Model Training")
 
     # 💡 หากมี Remote URI ให้ Log Metadata ไปที่ Remote Server ด้วย
+    # E501 fix: ตัดบรรทัด
     # การ set เป็น Remote อีกครั้งในฟังก์ชันนี้ จะทำให้ Log Metadata
     # ไปที่ Remote
     # แต่ Artifacts (โมเดล) จะถูกบันทึกใน Local ก่อนแล้วค่อย sync ไป remote
@@ -89,7 +90,8 @@ def train_evaluate_register(preprocessing_run_id=None, epochs=10, lr=0.001):
         BATCH_SIZE = 32
         data_path = "mlops_pipeline/data"
 
-        #Data Validation
+        # E265 fix
+        # -------------------- Data Validation --------------------
         cleaned_count = remove_dot_files(data_path)
         corrupted_count = remove_corrupted_images(data_path)
         # E501 fix
@@ -116,8 +118,8 @@ def train_evaluate_register(preprocessing_run_id=None, epochs=10, lr=0.001):
         print("✅ Logged Data Validation Report to MLflow Artifacts.")
         os.remove(report_file)
 
-
-        #Data Loading and Preprocessing
+        # E265 & E303 fix
+        # -------------------- Data Loading and Preprocessing --------------------
         print(f"📂 โหลดข้อมูลจาก: {data_path}")
         temp_ds = tf.keras.preprocessing.image_dataset_from_directory(
             data_path, image_size=IMG_SIZE, batch_size=BATCH_SIZE)
@@ -149,8 +151,8 @@ def train_evaluate_register(preprocessing_run_id=None, epochs=10, lr=0.001):
             layers.RandomZoom(0.1),
         ])
 
-
-        #Model Definition and Training
+        # E265 & E303 fix
+        # -------------------- Model Definition and Training --------------------
         model = models.Sequential([
             data_augmentation,
             layers.Rescaling(1./255),
