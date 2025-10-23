@@ -6,18 +6,17 @@ import numpy as np
 from PIL import Image
 import os
 from pathlib import Path
+import argparse 
 
 # 💡 บันทึกค่า Remote Tracking URI (จาก Environment Variables)
-# หากมีการตั้งค่าไว้ใน GitHub Actions
 REMOTE_TRACKING_URI = os.environ.get("MLFLOW_TRACKING_URI")
 
 # 💡 กำหนดให้ MLflow ใช้โฟลเดอร์เก็บผล Artifacts ในเครื่องก่อนเสมอ
-# สิ่งนี้ช่วยให้ขั้นตอน 'Copy trained model' ใน main.yml หาไฟล์โมเดลเจอ
 mlflow.set_tracking_uri(f"file:{Path.cwd()}/mlruns") 
 
 ALLOWED_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp')
 
-# ... (ฟังก์ชัน remove_dot_files และ remove_corrupted_images เหมือนเดิม) ...
+# ... (ฟังก์ชัน remove_dot_files เหมือนเดิม) ...
 def remove_dot_files(root_dir):
     """ลบไฟล์ระบบหรือไฟล์ที่ไม่ใช่ภาพ"""
     count = 0
@@ -65,8 +64,10 @@ def train_evaluate_register(preprocessing_run_id=None, epochs=10, lr=0.001):
     mlflow.set_experiment("Weather Classification - Model Training")
 
     # 💡 หากมี Remote URI ให้ Log Metadata ไปที่ Remote Server ด้วย
+    # Note: เนื่องจากเรา set tracking uri เป็น Local ในตอนต้น
+    # การ set เป็น Remote อีกครั้งในฟังก์ชันนี้ จะทำให้ Log Metadata ไปที่ Remote
+    # แต่ Artifacts (โมเดล) จะถูกบันทึกใน Local ก่อนแล้วค่อย sync ไป remote (ถ้าใช้ Remote Server)
     if REMOTE_TRACKING_URI:
-        # กำหนด URI กลับไปเป็น Remote สำหรับการ Log Metadata (ชื่อ Run, Metrics, Params)
         mlflow.set_tracking_uri(REMOTE_TRACKING_URI)
     
     # 💡 ใช้ชื่อ Artifact Path ที่ชัดเจน และจะใช้ในการค้นหาใน main.yml
@@ -81,12 +82,29 @@ def train_evaluate_register(preprocessing_run_id=None, epochs=10, lr=0.001):
         BATCH_SIZE = 32
         data_path = "mlops_pipeline/data"
         
-        # ... (โค้ดโหลดและเตรียมข้อมูล) ...
-
+        # -------------------- Data Validation --------------------
         cleaned_count = remove_dot_files(data_path)
         corrupted_count = remove_corrupted_images(data_path)
         print(f"🧼 ลบไฟล์ระบบ {cleaned_count} ไฟล์, ลบไฟล์เสีย {corrupted_count} ไฟล์")
 
+        # 💡 NEW: สร้างและบันทึกรายงาน Data Validation Artifacts
+        report_content = (
+            f"--- Data Validation Report ---\n"
+            f"Total files removed (system/invalid): {cleaned_count}\n"
+            f"Total corrupted images removed: {corrupted_count}\n"
+            f"Validation Check Status: {'PASS' if cleaned_count + corrupted_count == 0 else 'WARNING'}\n"
+            f"------------------------------\n"
+        )
+        
+        report_file = "data_validation_report.txt"
+        with open(report_file, "w") as f:
+            f.write(report_content)
+        
+        mlflow.log_artifact(report_file, "data_validation")
+        print(f"✅ Logged Data Validation Report to MLflow Artifacts.")
+        os.remove(report_file)
+        
+        # -------------------- Data Loading and Preprocessing --------------------
         print(f"📂 โหลดข้อมูลจาก: {data_path}")
         temp_ds = tf.keras.preprocessing.image_dataset_from_directory(
             data_path, image_size=IMG_SIZE, batch_size=BATCH_SIZE)
@@ -104,12 +122,14 @@ def train_evaluate_register(preprocessing_run_id=None, epochs=10, lr=0.001):
             image_size=IMG_SIZE, batch_size=BATCH_SIZE, labels='inferred', label_mode='int'
         )
 
+        # Data Augmentation & Rescaling (Pre-processing)
         data_augmentation = tf.keras.Sequential([
             layers.RandomFlip("horizontal"),
             layers.RandomRotation(0.1),
             layers.RandomZoom(0.1),
         ])
 
+        # -------------------- Model Definition and Training --------------------
         model = models.Sequential([
             data_augmentation,
             layers.Rescaling(1./255),
@@ -128,31 +148,28 @@ def train_evaluate_register(preprocessing_run_id=None, epochs=10, lr=0.001):
 
         history = model.fit(train_ds, validation_data=val_ds, epochs=epochs)
 
+        # -------------------- MLflow Tracking and Registration --------------------
         mlflow.log_param("epochs", epochs)
         mlflow.log_param("learning_rate", lr)
         mlflow.log_metric("train_accuracy", history.history["accuracy"][-1])
         mlflow.log_metric("val_accuracy", history.history["val_accuracy"][-1])
 
         # 1. Log Model (บันทึกไฟล์ Artifacts ลงใน Local Disk)
-        # ต้องทำก่อน Register เพื่อให้ไฟล์อยู่บนดิสก์สำหรับการ Copy
         mlflow.tensorflow.log_model(
-            model=model,    
-            artifact_path=ARTIFACT_PATH,  # ✅ ใช้ชื่อที่กำหนดไว้ 'model'
+            model=model, 
+            artifact_path=ARTIFACT_PATH, 
             input_example=np.zeros((1, 128, 128, 3)),
-            registered_model_name=None # ❌ ไม่ลงทะเบียนตรงนี้
+            registered_model_name=None 
         )
 
         # 2. Register Model (ใช้ URI ที่ถูกต้อง)
         val_acc = history.history["val_accuracy"][-1]
         if val_acc >= 0.60:
-            # ใช้ URI จาก Run ปัจจุบัน และ Artifact Path ที่เราตั้งไว้
             run_id = mlflow.active_run().info.run_id
-            
-            # 💡 ต้องใช้ Path ที่ MLflow มองเห็น ซึ่งคือ Local Path
+            # ใช้ URI ที่ MLflow มองเห็น (Local Path ที่ถูกสร้าง)
             model_uri = f"runs:/{run_id}/{ARTIFACT_PATH}"
             print(f"🔗 Registering model from URI: {model_uri}")
             
-            # 💡 ใช้ชื่อ Artifact Path ที่เรากำหนดไว้ 'model' เพื่อให้ถูกต้องกับ Run
             registered_model = mlflow.register_model(
                 model_uri=model_uri,
                 name="weather-classifier-prod"
@@ -162,4 +179,10 @@ def train_evaluate_register(preprocessing_run_id=None, epochs=10, lr=0.001):
             print(f"⚠️ Accuracy {val_acc:.2f} ต่ำกว่าเกณฑ์ ไม่ลงทะเบียนโมเดล")
 
 if __name__ == "__main__":
-    train_evaluate_register()
+    # 💡 NEW: เพิ่ม Argument Parser เพื่อรับค่า LR และ Epochs จาก Command Line
+    parser = argparse.ArgumentParser(description="Run model training and evaluation.")
+    parser.add_argument("--epochs", type=int, default=10, help="Number of epochs to train.")
+    parser.add_argument("--lr", type=float, default=0.001, help="Learning rate for the optimizer.")
+    args = parser.parse_args()
+    
+    train_evaluate_register(epochs=args.epochs, lr=args.lr)
