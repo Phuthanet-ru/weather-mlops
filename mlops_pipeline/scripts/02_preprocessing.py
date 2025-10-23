@@ -1,7 +1,9 @@
 import os
 import tensorflow as tf
 import mlflow
+# 💡 กำหนดให้ MLflow ใช้โฟลเดอร์เก็บผล Artifacts ในเครื่องก่อนเสมอ
 mlflow.set_tracking_uri("file:./mlruns")
+
 
 def preprocess_data(data_dir="data", img_size=(128, 128), batch_size=32):
     """
@@ -43,6 +45,7 @@ def preprocess_data(data_dir="data", img_size=(128, 128), batch_size=32):
         # สำหรับ workflow ต่อเนื่องใน GitHub Actions
         if "GITHUB_OUTPUT" in os.environ:
             with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+                # บันทึก run_id เป็น output สำหรับ Job ต่อไป
                 print(f"run_id={run_id}", file=f)
 
 if __name__ == "__main__":
