@@ -2,13 +2,19 @@ import tensorflow as tf
 import mlflow
 import mlflow.tensorflow
 from tensorflow.keras import layers, models
+from PIL import Image
 import os
 from pathlib import Path
+
+# กำหนดให้ MLflow ใช้โฟลเดอร์เก็บผลในเครื่อง
 mlflow.set_tracking_uri("file:./mlruns")
 
+# ✅ นามสกุลภาพที่อนุญาต
 ALLOWED_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp')
 
+
 def remove_dot_files(root_dir):
+    """ลบไฟล์ระบบหรือไฟล์ที่ไม่ใช่ภาพ"""
     count = 0
     if not os.path.isabs(root_dir):
         root_dir = os.path.join(os.getcwd(), root_dir)
@@ -34,6 +40,23 @@ def remove_dot_files(root_dir):
     return count
 
 
+def remove_corrupted_images(root_dir):
+    """ตรวจและลบรูปภาพที่เปิดไม่ได้ (ไฟล์เสีย)"""
+    removed = 0
+    for subdir, _, files in os.walk(root_dir):
+        for file in files:
+            path = os.path.join(subdir, file)
+            if file.lower().endswith(ALLOWED_EXTENSIONS):
+                try:
+                    img = Image.open(path)
+                    img.verify()
+                except Exception:
+                    print(f"🟥 พบไฟล์เสีย: {path} → ลบออก")
+                    os.remove(path)
+                    removed += 1
+    return removed
+
+
 def train_evaluate_register(preprocessing_run_id=None, epochs=10, lr=0.001):
     mlflow.set_experiment("Weather Classification - Model Training")
 
@@ -44,24 +67,29 @@ def train_evaluate_register(preprocessing_run_id=None, epochs=10, lr=0.001):
 
         IMG_SIZE = (128, 128)
         BATCH_SIZE = 32
-        
         data_path = "mlops_pipeline/data"  # ✅ โฟลเดอร์เก็บภาพ
 
+        # -----------------------------------------------
+        # 🧹 ทำความสะอาดข้อมูลก่อนโหลด
         cleaned_count = remove_dot_files(data_path)
-        if cleaned_count > 0:
-            print(f"🧹 ลบไฟล์ที่ไม่ใช่ภาพออก {cleaned_count} ไฟล์")
+        corrupted_count = remove_corrupted_images(data_path)
+        print(f"🧼 ลบไฟล์ระบบ {cleaned_count} ไฟล์, ลบไฟล์เสีย {corrupted_count} ไฟล์")
+        # -----------------------------------------------
 
         print(f"📂 โหลดข้อมูลจาก: {data_path}")
 
-        # ✅ ใช้ image_dataset_from_directory ครั้งเดียว เพื่อดึง class_names ก่อน
+        # ✅ โหลด dataset ครั้งแรกเพื่ออ่าน class names
         temp_ds = tf.keras.preprocessing.image_dataset_from_directory(
             data_path,
             image_size=IMG_SIZE,
             batch_size=BATCH_SIZE
         )
-        class_names = temp_ds.class_names  # ✅ ได้ชื่อ class ตรงนี้
+        class_names = temp_ds.class_names
 
-        # ✅ จากนั้นสร้าง train/val แยกกันเหมือนเดิม
+        if len(class_names) < 2:
+            raise ValueError(f"⚠️ Dataset ต้องมีอย่างน้อย 2 classes แต่พบเพียง {len(class_names)}: {class_names}")
+
+        # ✅ สร้าง train และ validation set
         train_ds = tf.keras.preprocessing.image_dataset_from_directory(
             data_path,
             validation_split=0.2,
@@ -83,13 +111,14 @@ def train_evaluate_register(preprocessing_run_id=None, epochs=10, lr=0.001):
             label_mode='int'
         )
 
+        # ✅ Data augmentation
         data_augmentation = tf.keras.Sequential([
             layers.RandomFlip("horizontal"),
             layers.RandomRotation(0.1),
             layers.RandomZoom(0.1),
         ])
 
-        # ✅ ใช้ len(class_names) แทน train_ds.class_names
+        # ✅ Model architecture
         model = models.Sequential([
             data_augmentation,
             layers.Rescaling(1./255),
@@ -109,6 +138,7 @@ def train_evaluate_register(preprocessing_run_id=None, epochs=10, lr=0.001):
             metrics=['accuracy']
         )
 
+        # ✅ Train
         history = model.fit(train_ds, validation_data=val_ds, epochs=epochs)
 
         # ✅ Log parameters และ metrics
