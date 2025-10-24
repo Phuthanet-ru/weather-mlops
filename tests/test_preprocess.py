@@ -1,6 +1,7 @@
 import os
 import tempfile
 from pathlib import Path
+import shutil
 
 # สมมติว่าคุณ import ฟังก์ชัน remove_dot_files จาก 03_train_model.py ได้
 # ในการรันจริง อาจต้องปรับโครงสร้าง project ให้ tests เข้าถึงได้
