@@ -111,6 +111,11 @@ jobs:
 
           echo "✅ Aggressive file cleanup completed. Any remaining files are either corrupt images or files without common extensions."
 
+      - name: 🔍 Check and remove corrupted images
+        run: |
+          python mlops_pipeline/scripts/find_corrupted.py
+          echo "✅ Corrupted image check completed."
+
       - name: Set MLflow Local Artifact Location
         run: |
           # กำหนด MLFLOW_ARTIFACT_URI ให้ชี้ไปที่พาธในเครื่อง (Runner) ที่มีสิทธิ์เขียน
