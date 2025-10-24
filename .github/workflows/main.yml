@@ -92,24 +92,57 @@ jobs:
           fi
           echo "✅ Dataset prepared."
 
+      - name: Create safe temporary directory
+        run: |
+          # สร้างโฟลเดอร์ชั่วคราวที่ใช้โดย TMPDIR
+          mkdir -p ${{ github.workspace }}/tmp
+          echo "✅ Created safe temporary directory for MLflow artifacts."
+
+      - name: 💣 Force cleanup of non-image files via Shell
+        run: |
+          DATA_PATH="mlops_pipeline/data"
+          echo "🔎 Forcing cleanup of non-image files in ${DATA_PATH}..."
+
+          # ค้นหาไฟล์ทั้งหมดที่ 'นามสกุล' ไม่ใช่ไฟล์ภาพที่ TensorFlow รองรับ 
+          # และลบไฟล์เหล่านั้น
+          find ${DATA_PATH} -type f \
+              ! -name "*.jpg" \
+              ! -name "*.jpeg" \
+              ! -name "*.png" \
+              ! -name "*.gif" \
+              ! -name "*.bmp" \
+              ! -name "*.webp" \
+              ! -name "*." \
+              -delete
+
+          echo "✅ Aggressive file cleanup completed. Any remaining files are either corrupt images or files without common extensions."
+
+      - name: 🔍 Check and remove corrupted images
+        run: |
+          python mlops_pipeline/scripts/find_corrupted.py
+          echo "✅ Corrupted image check completed."
+  
+      - name: "Run Model Training (Exp: ${{ matrix.experiment.run_name }})"
+        env:
+            # 🚨 บังคับใช้พาธชั่วคราวที่ปลอดภัยสำหรับ Python/MLflow/OS
+          TMPDIR: ${{ github.workspace }}/tmp
+          TEMP: ${{ github.workspace }}/tmp
+          MP: ${{ github.workspace }}/tmp
+        run: |
+          # 1. สร้างโฟลเดอร์ชั่วคราวที่ปลอดภัยก่อนรัน (เผื่อกรณีที่ mkdir -p ยังไม่พอ)
+          mkdir -p ${{ github.workspace }}/tmp
+          echo "✅ Created safe temporary directory: ${{ github.workspace }}/tmp"
+  
+          # 2. รันการเทรน
+          echo "🚀 Running Exp: LR=${{ matrix.experiment.lr }}, Epochs=${{ matrix.experiment.epochs }}"
+          python mlops_pipeline/scripts/03_train_model.py \
+              --lr ${{ matrix.experiment.lr }} \
+              --epochs ${{ matrix.experiment.epochs }}
+
       - name: Inspect dataset (for debugging)
         run: |
           echo "📁 Dataset files preview:"
           find mlops_pipeline/data -type f | head -20
-
-      # 🚨 ขั้นตอนที่เพิ่มเข้ามา (ทางเลือกที่ 1)
-      - name: 🧹 Check and remove non-image files (Dedicated Script)
-        run: |
-          # ติดตั้ง Pillow สำหรับการจัดการภาพ ถ้ายังไม่ได้ติดตั้ง
-          # (ถูกติดตั้งแล้วในขั้นตอน Install dependencies แต่ใส่ซ้ำเผื่อขาด)
-          # python -m pip install pillow
-          python mlops_pipeline/scripts/find_corrupted.py
-          echo "✅ Data cleaned using dedicated script."
-
-      - name: "Run Model Training (Exp: ${{ matrix.experiment.run_name }})"
-        run: |
-          echo "🚀 Running Exp: LR=${{ matrix.experiment.lr }}, Epochs=${{ matrix.experiment.epochs }}"
-          python mlops_pipeline/scripts/03_train_model.py
 
       - name: Upload MLflow Artifacts
         if: success()

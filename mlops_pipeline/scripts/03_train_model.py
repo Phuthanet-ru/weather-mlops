@@ -4,16 +4,25 @@ import mlflow.tensorflow
 from tensorflow.keras import layers, models
 import numpy as np
 import os
+import sys
+import argparse
 
 # หากคุณยังใช้ os.getcwd() หรือ os.path.isabs
 # ในโค้ดอื่นที่ไม่แสดง ให้เพิ่ม import shutil, argparse หากจำเป็น
 
-# mlflow.set_tracking_uri("file:./mlruns")
-# ใช้ os.getcwd() แทน Path.cwd() หากคุณไม่ได้ import Path
+# 1. ตั้งค่า MLFLOW_TRACKING_URI
 REMOTE_TRACKING_URI = os.environ.get("MLFLOW_TRACKING_URI")
 if REMOTE_TRACKING_URI:
     mlflow.set_tracking_uri(REMOTE_TRACKING_URI)
+
+    # 🚨 ลบโค้ดส่วนนี้ออกทั้งหมด:
+
+    # os.environ["MLFLOW_ARTIFACT_URI"] = LOCAL_ARTIFACT_PATH
+
+    ARTIFACT_PATH_FOR_LOG = "model"
+
 else:
+    # หากรันภายในเครื่อง ให้ใช้ไฟล์
     mlflow.set_tracking_uri(f"file:{os.getcwd()}/mlruns")
 
 
@@ -23,7 +32,20 @@ def train_evaluate_register(preprocessing_run_id=None, epochs=10, lr=0.001):
 
     data_path = "mlops_pipeline/data"
 
-    with mlflow.start_run(run_name=f"cnn_lr_{lr}_ep_{epochs}"):
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--lr", type=float, default=lr, help="Learning rate")
+
+    parser.add_argument("--epochs", type=int, default=epochs,
+                        help="Number of epochs for training")
+
+    if len(sys.argv) > 1:
+        args, _ = parser.parse_known_args()
+        lr = args.lr
+        epochs = args.epochs
+
+    run_name = f"cnn_lr_{lr}_ep_{epochs}"
+
+    with mlflow.start_run(run_name=run_name):
         mlflow.set_tag("ml.step", "model_training_evaluation")
 
         IMG_SIZE = (128, 128)
@@ -78,10 +100,15 @@ def train_evaluate_register(preprocessing_run_id=None, epochs=10, lr=0.001):
         mlflow.log_metric("train_accuracy", history.history["accuracy"][-1])
         mlflow.log_metric("val_accuracy", history.history["val_accuracy"][-1])
 
-        # MLflow Model Registration (ใช้ชื่อ artifact_path ที่สั้นลง)
+        artifact_path_local = (
+            ARTIFACT_PATH_FOR_LOG
+            if 'ARTIFACT_PATH_FOR_LOG' in locals()
+            else "model"
+        )
+
         mlflow.tensorflow.log_model(
             model=model,
-            artifact_path="model",
+            artifact_path=artifact_path_local,
             input_example=np.zeros((1, 128, 128, 3)),
             registered_model_name="weather-classifier-prod"
         )
