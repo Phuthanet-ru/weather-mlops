@@ -112,7 +112,7 @@ def train_evaluate_register(preprocessing_run_id=None, epochs=10, lr=0.001):
             if 'ARTIFACT_PATH_FOR_LOG' in locals()
             else "model"
         )
-        
+
         mlflow.tensorflow.log_model(
             model=model,
             artifact_path=artifact_path,
