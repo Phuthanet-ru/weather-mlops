@@ -124,11 +124,16 @@ jobs:
   
       - name: "Run Model Training (Exp: ${{ matrix.experiment.run_name }})"
         env:
+            # 🚨 บังคับใช้พาธชั่วคราวที่ปลอดภัยสำหรับ Python/MLflow/OS
           TMPDIR: ${{ github.workspace }}/tmp
-            # 🚨 เพิ่ม TEMP/TMP เพื่อความครอบคลุม (อาจช่วยในกรณีที่ TMPDIR ไม่ถูกใช้)
           TEMP: ${{ github.workspace }}/tmp
-          TMP: ${{ github.workspace }}/tmp
+          MP: ${{ github.workspace }}/tmp
         run: |
+          # 1. สร้างโฟลเดอร์ชั่วคราวที่ปลอดภัยก่อนรัน (เผื่อกรณีที่ mkdir -p ยังไม่พอ)
+          mkdir -p ${{ github.workspace }}/tmp
+          echo "✅ Created safe temporary directory: ${{ github.workspace }}/tmp"
+  
+          # 2. รันการเทรน
           echo "🚀 Running Exp: LR=${{ matrix.experiment.lr }}, Epochs=${{ matrix.experiment.epochs }}"
           python mlops_pipeline/scripts/03_train_model.py \
               --lr ${{ matrix.experiment.lr }} \
