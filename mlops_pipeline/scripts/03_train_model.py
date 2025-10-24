@@ -14,19 +14,20 @@ import argparse
 REMOTE_TRACKING_URI = os.environ.get("MLFLOW_TRACKING_URI")
 if REMOTE_TRACKING_URI:
     mlflow.set_tracking_uri(REMOTE_TRACKING_URI)
-    
-    # 2. บังคับให้ MLflow Client บันทึก Artifacts ไปยังพาธในเครื่อง (Local) 
+
+    # 2. บังคับให้ MLflow Client บันทึก Artifacts ไปยังพาธในเครื่อง (Local)
     # ที่สามารถเขียนได้ (ใน mlruns/ ซึ่งถูกอัปโหลดเป็น Artifacts ของ GitHub)
-    LOCAL_ARTIFACT_PATH = os.path.join(os.getcwd(), "mlruns", "mlflow_artifacts")
-    
-    # MLFLOW_ARTIFACT_URI ใช้กำหนดที่จัดเก็บ Artifacts 
+    LOCAL_ARTIFACT_PATH = os.path.join(os.getcwd(), "mlruns",
+                                       "mlflow_artifacts")
+
+    # MLFLOW_ARTIFACT_URI ใช้กำหนดที่จัดเก็บ Artifacts
     # ในกรณีนี้เราตั้งให้เป็นพาธในเครื่อง Runner
     os.environ["MLFLOW_ARTIFACT_URI"] = LOCAL_ARTIFACT_PATH
-    
+
     # หากยังไม่สำเร็จ ให้ลองตั้งค่าพาธสำหรับ log_model() ด้วย
     # (ปกติ log_model จะสร้างพาธเอง แต่เราจะลองกำหนด)
-    ARTIFACT_PATH_FOR_LOG = "model" # ใช้ชื่อ artifact_path ใน log_model
-    
+    ARTIFACT_PATH_FOR_LOG = "model" #  ใช้ชื่อ artifact_path ใน log_model
+
 else:
     # หากรันภายในเครื่อง ให้ใช้ไฟล์
     mlflow.set_tracking_uri(f"file:{os.getcwd()}/mlruns")
@@ -40,15 +41,15 @@ def train_evaluate_register(preprocessing_run_id=None, epochs=10, lr=0.001):
 
     parser = argparse.ArgumentParser()
     parser.add_argument("--lr", type=float, default=lr, help="Learning rate")
-    
-    parser.add_argument("--epochs", type=int, default=epochs, 
+
+    parser.add_argument("--epochs", type=int, default=epochs,
                         help="Number of epochs for training")
-    
+
     if len(sys.argv) > 1:
         args, _ = parser.parse_known_args()
         lr = args.lr
         epochs = args.epochs
-    
+
     run_name = f"cnn_lr_{lr}_ep_{epochs}"
 
     with mlflow.start_run(run_name=run_name):
@@ -106,11 +107,13 @@ def train_evaluate_register(preprocessing_run_id=None, epochs=10, lr=0.001):
         mlflow.log_metric("train_accuracy", history.history["accuracy"][-1])
         mlflow.log_metric("val_accuracy", history.history["val_accuracy"][-1])
 
+        artifact_path = ARTIFACT_PATH_FOR_LOG if 'ARTIFACT_PATH_FOR_LOG' in locals() else "model"
+
 # MLflow Model Registration (ใช้ชื่อ artifact_path ที่สั้นลง)
         mlflow.tensorflow.log_model(
             model=model,
             # ใช้ artifact_path ที่กำหนดไว้
-            artifact_path=ARTIFACT_PATH_FOR_LOG if 'ARTIFACT_PATH_FOR_LOG' in locals() else "model",
+            artifact_path=artifact_path,
             input_example=np.zeros((1, 128, 128, 3)),
             registered_model_name="weather-classifier-prod"
         )
