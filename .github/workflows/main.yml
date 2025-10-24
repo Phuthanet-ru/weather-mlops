@@ -139,32 +139,35 @@ jobs:
 
       - name: Consolidate MLflow artifacts
         run: |
+          # 1. สร้างโฟลเดอร์ปลายทาง
           mkdir -p mlruns
+          
+          # 2. วนลูปผ่านโฟลเดอร์ Artifacts ที่ถูกดาวน์โหลด
           for dir in mlflow-artifacts-*; do
-            if [ -d "$dir/mlruns" ]; then
-              cp -r $dir/mlruns/* mlruns/
-            fi
+            echo "Consolidating artifacts from $dir"
+            # คัดลอกเนื้อหาทั้งหมดในโฟลเดอร์ artifact (ซึ่งคือ EXP_ID) 
+            # ไปยัง mlruns/
+            # ใช้ find เพื่อคัดลอกเฉพาะโฟลเดอร์ EXP_ID และ RUN_ID
+            find "$dir" -maxdepth 1 -mindepth 1 -type d -exec cp -r {} mlruns/ \;
           done
           echo "✅ Consolidated mlruns directory."
-          find mlruns -type f | head -10
+          # ตรวจสอบว่าไฟล์ MLmodel อยู่ในโครงสร้างที่คาดหวังหรือไม่
+          find mlruns -type f -name "MLmodel" | head -10
 
       - name: Copy latest model for deployment
         run: |
           echo "📦 Searching for trained model..."
-          # 🚨 แก้ไขการค้นหา: หาโฟลเดอร์ 'model' ที่มีไฟล์ 'MLmodel' และเลือกโฟลเดอร์ที่ถูกสร้างล่าสุด
-          # โครงสร้าง MLflow คือ mlruns/EXP_ID/RUN_ID/artifacts/model/MLmodel
+          # 1. ค้นหาไฟล์ MLmodel ทั้งหมด
+          MODEL_FILES=$(find mlruns -type f -name "MLmodel")
 
-          # 1. ค้นหาโฟลเดอร์ที่เก็บโมเดลทั้งหมด
-          MODEL_DIRS=$(find mlruns -type f -name "MLmodel" -exec dirname {} \;)
-
-          if [ -z "$MODEL_DIRS" ]; then
+          if [ -z "$MODEL_FILES" ]; then
             echo "❌ No MLmodel file found within mlruns/ directory structure."
             exit 1
           fi
 
-          # 2. คัดเลือกโฟลเดอร์โมเดลที่ถูกสร้างขึ้นล่าสุด (ใช้เวลาการสร้าง/แก้ไข)
-          # เราใช้ 'ls -td' เพื่อเรียงลำดับตามเวลา (ล่าสุดก่อน)
-          LATEST_MODEL_DIR=$(echo "$MODEL_DIRS" | xargs ls -td | head -1)
+          # 2. คัดเลือกโฟลเดอร์โมเดลที่ถูกสร้างขึ้นล่าสุด (โดยใช้ find และ sort ตามเวลา)
+          # เราใช้ ls -td (เรียงตามเวลา) บนไดเรกทอรีของไฟล์ MLmodel
+          LATEST_MODEL_DIR=$(echo "$MODEL_FILES" | xargs dirname | xargs ls -td | head -1)
 
           if [ -z "$LATEST_MODEL_DIR" ]; then
             echo "❌ Failed to determine the latest model directory."
