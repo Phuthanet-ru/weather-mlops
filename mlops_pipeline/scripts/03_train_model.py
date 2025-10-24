@@ -5,6 +5,7 @@ from tensorflow.keras import layers, models
 import numpy as np
 from PIL import Image
 import os
+import pathlib
 
 # กำหนดให้ MLflow ใช้โฟลเดอร์เก็บผลในเครื่อง
 mlflow.set_tracking_uri("file:./mlruns")
@@ -63,6 +64,24 @@ def remove_corrupted_images(root_dir):
                     removed += 1
     return removed
 
+def clean_non_images(root_dir):
+    """ลบไฟล์ที่ไม่ใช่ภาพออกจาก dataset ทั้งหมด"""
+    removed = 0
+    valid_exts = ('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp')
+
+    for path in pathlib.Path(root_dir).rglob("*"):
+        if path.is_file():
+            if not path.suffix.lower() in valid_exts:
+                print(f"⚠️ ลบไฟล์ที่ไม่ใช่ภาพ: {path}")
+                try:
+                    path.unlink()
+                    removed += 1
+                except Exception as e:
+                    print(f"ไม่สามารถลบ {path}: {e}")
+    return removed
+
+removed_non_img = clean_non_images(data_path)
+print(f"🧹 ลบไฟล์ที่ไม่ใช่ภาพออกทั้งหมด {removed_non_img} ไฟล์")
 
 def train_evaluate_register(preprocessing_run_id=None, epochs=10, lr=0.001):
     mlflow.set_experiment("Weather Classification - Model Training")
