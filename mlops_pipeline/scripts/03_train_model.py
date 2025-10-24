@@ -26,7 +26,7 @@ if REMOTE_TRACKING_URI:
 
     # หากยังไม่สำเร็จ ให้ลองตั้งค่าพาธสำหรับ log_model() ด้วย
     # (ปกติ log_model จะสร้างพาธเอง แต่เราจะลองกำหนด)
-    ARTIFACT_PATH_FOR_LOG = "model" #  ใช้ชื่อ artifact_path ใน log_model
+    ARTIFACT_PATH_FOR_LOG = "model"
 
 else:
     # หากรันภายในเครื่อง ให้ใช้ไฟล์
@@ -107,12 +107,13 @@ def train_evaluate_register(preprocessing_run_id=None, epochs=10, lr=0.001):
         mlflow.log_metric("train_accuracy", history.history["accuracy"][-1])
         mlflow.log_metric("val_accuracy", history.history["val_accuracy"][-1])
 
-        artifact_path = ARTIFACT_PATH_FOR_LOG if 'ARTIFACT_PATH_FOR_LOG' in locals() else "model"
-
-# MLflow Model Registration (ใช้ชื่อ artifact_path ที่สั้นลง)
+        artifact_path = (ARTIFACT_PATH_FOR_LOG
+                         if 'ARTIFACT_PATH_FOR_LOG' in locals()
+                         else "model"
+                        )
+        
         mlflow.tensorflow.log_model(
             model=model,
-            # ใช้ artifact_path ที่กำหนดไว้
             artifact_path=artifact_path,
             input_example=np.zeros((1, 128, 128, 3)),
             registered_model_name="weather-classifier-prod"
