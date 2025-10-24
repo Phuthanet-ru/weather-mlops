@@ -19,7 +19,7 @@ else:
     mlflow.set_tracking_uri(f"file:{os.getcwd()}/mlruns")
 
 # 🚨 เพิ่มการตั้งค่า Artifact Root สำหรับ Client (Runner)
-os.environ["MLFLOW_TRACKING_ARTIFACT_LOCATION"] = "mlruns/artifacts" 
+os.environ["MLFLOW_TRACKING_ARTIFACT_LOCATION"] = "mlruns/artifacts"
 
 
 def train_evaluate_register(preprocessing_run_id=None, epochs=10, lr=0.001):
