@@ -92,6 +92,20 @@ jobs:
           fi
           echo "✅ Dataset prepared."
 
+      - name: Set MLflow Local Artifact Location
+        run: |
+          # กำหนด MLFLOW_ARTIFACT_URI ให้ชี้ไปที่พาธในเครื่อง (Runner) ที่มีสิทธิ์เขียน
+          echo "MLFLOW_ARTIFACT_URI=$(pwd)/mlruns/artifacts" >> $GITHUB_ENV
+          # ตอนนี้ MLFLOW_ARTIFACT_URI จะถูกใช้ในขั้นตอนต่อไป
+  
+      - name: "Run Model Training (Exp: ${{ matrix.experiment.run_name }})"
+          
+        run: |
+          echo "🚀 Running Exp: LR=${{ matrix.experiment.lr }}, Epochs=${{ matrix.experiment.epochs }}"
+          python mlops_pipeline/scripts/03_train_model.py \
+              --lr ${{ matrix.experiment.lr }} \
+              --epochs ${{ matrix.experiment.epochs }}
+
       - name: Inspect dataset (for debugging)
         run: |
           echo "📁 Dataset files preview:"

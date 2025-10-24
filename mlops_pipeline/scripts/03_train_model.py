@@ -15,18 +15,11 @@ REMOTE_TRACKING_URI = os.environ.get("MLFLOW_TRACKING_URI")
 if REMOTE_TRACKING_URI:
     mlflow.set_tracking_uri(REMOTE_TRACKING_URI)
 
-    # 2. บังคับให้ MLflow Client บันทึก Artifacts ไปยังพาธในเครื่อง (Local)
-    # ที่สามารถเขียนได้ (ใน mlruns/ ซึ่งถูกอัปโหลดเป็น Artifacts ของ GitHub)
-    LOCAL_ARTIFACT_PATH = os.path.join(os.getcwd(), "mlruns",
-                                       "mlflow_artifacts")
+    # 🚨 ลบโค้ดส่วนนี้ออกทั้งหมด:
 
-    # MLFLOW_ARTIFACT_URI ใช้กำหนดที่จัดเก็บ Artifacts
-    # ในกรณีนี้เราตั้งให้เป็นพาธในเครื่อง Runner
-    os.environ["MLFLOW_ARTIFACT_URI"] = LOCAL_ARTIFACT_PATH
+    # os.environ["MLFLOW_ARTIFACT_URI"] = LOCAL_ARTIFACT_PATH
 
-    # หากยังไม่สำเร็จ ให้ลองตั้งค่าพาธสำหรับ log_model() ด้วย
-    # (ปกติ log_model จะสร้างพาธเอง แต่เราจะลองกำหนด)
-    ARTIFACT_PATH_FOR_LOG = "model"
+    ARTIFACT_PATH_FOR_LOG = "model" 
 
 else:
     # หากรันภายในเครื่อง ให้ใช้ไฟล์
