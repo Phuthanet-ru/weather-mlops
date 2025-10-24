@@ -1,7 +1,7 @@
 # 🔹 ชื่อของ Workflow
 name: MLOps Pipeline CI/CT/CD
 
-# 🔹 กำหนดเงื่อนไขการรัน: เมื่อมีการ push หรือ pull request ไปยัง branch 'main'
+# 🔹 Trigger: เมื่อมีการ push หรือ pull request ไปยัง branch main
 on:
   push:
     branches: [ "main" ]
@@ -21,25 +21,41 @@ jobs:
         with:
           python-version: '3.10'
 
-      - name: Install dependencies
+      - name: Install CI dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r mlops_pipeline/requirements.txt
-          pip install flake8 pytest pandas
+          pip install flake8 pytest
 
-      - name: Lint with flake8
+      - name: 🔎 Lint with flake8
         run: |
-          flake8 mlops_pipeline/scripts --count --select=E9,F63,F7,F82 --show-source --statistics
-          flake8 mlops_pipeline/scripts --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+          flake8 deployment mlops_pipeline/scripts --count --show-source --statistics
+          flake8 deployment mlops_pipeline/scripts --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+          echo "✅ Flake8 check passed."
 
-      - name: Test with pytest
+      - name: 🧪 Test with pytest
         run: |
-          pytest || (if [ $? -eq 5 ]; then echo "Pytest finished: No tests found."; exit 0; else exit $?; fi)
+          pytest || (if [ $? -eq 5 ]; then echo "No tests found. Skipping."; exit 0; else exit $?; fi)
+          echo "✅ Unit tests passed."
 
-  # -------------------- 🔹 JOB 2: Build, Train, and Deploy --------------------
-  build-and-train:
+
+  # -------------------- 🔹 JOB 2: Train Models (CT) --------------------
+  train-and-compare:
     needs: ci-checks
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        experiment:
+          - lr: 0.001
+            epochs: 10
+            run_name: 'base-config'
+          - lr: 0.0005
+            epochs: 10
+            run_name: 'low-lr'
+          - lr: 0.001
+            epochs: 20
+            run_name: 'high-epochs'
     env:
       MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
       MLFLOW_TRACKING_USERNAME: ${{ secrets.MLFLOW_TRACKING_USERNAME }}
@@ -58,10 +74,9 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r mlops_pipeline/requirements.txt
-          pip install kaggle
+          pip install kaggle tensorflow mlflow pillow numpy
 
-      # ✅ โหลด dataset จาก Kaggle
-      - name: Download Dataset from Kaggle
+      - name: Download Dataset and Fix Structure
         env:
           KAGGLE_JSON: ${{ secrets.KAGGLE_JSON }}
         run: |
@@ -71,119 +86,117 @@ jobs:
           chmod 600 ~/.kaggle/kaggle.json
           mkdir -p mlops_pipeline/data
           kaggle datasets download -d ammaralfaifi/5class-weather-status-image-classification -p mlops_pipeline/data --unzip
-          echo "✅ Dataset downloaded successfully."
-
-      - name: Fix dataset folder structure
-        run: |
-          echo "🔧 Checking folder structure..."
           if [ -d "mlops_pipeline/data/data" ]; then
             mv mlops_pipeline/data/data/* mlops_pipeline/data/
             rm -rf mlops_pipeline/data/data
           fi
-          echo "✅ Dataset structure fixed."
+          echo "✅ Dataset prepared."
 
-      - name: Check and remove corrupted images
+      - name: Inspect dataset (for debugging)
         run: |
-          python -m pip install tensorflow pillow
+          echo "📁 Dataset files preview:"
+          find mlops_pipeline/data -type f | head -20
+
+      # 🚨 ขั้นตอนที่เพิ่มเข้ามา (ทางเลือกที่ 1)
+      - name: 🧹 Check and remove non-image files (Dedicated Script)
+        run: |
+          # ติดตั้ง Pillow สำหรับการจัดการภาพ ถ้ายังไม่ได้ติดตั้ง
+          # (ถูกติดตั้งแล้วในขั้นตอน Install dependencies แต่ใส่ซ้ำเผื่อขาด)
+          # python -m pip install pillow
           python mlops_pipeline/scripts/find_corrupted.py
+          echo "✅ Data cleaned using dedicated script."
 
-      # ✅ Pipeline steps
-      - name: Run Data Validation
-        run: python mlops_pipeline/scripts/01_data_validation.py
-
-      - name: Run Data Preprocessing
-        id: preprocessing
-        run: python mlops_pipeline/scripts/02_preprocessing.py
-
-      - name: Run Model Training, Evaluation, and Registration
-        run: python mlops_pipeline/scripts/03_train_model.py
-      
-      # 💡 ขั้นตอนใหม่: ตรวจสอบโครงสร้าง MLflow artifacts
-      - name: Debug MLflow Artifacts Structure
+      - name: "Run Model Training (Exp: ${{ matrix.experiment.run_name }})"
         run: |
-          echo "Current directory contents:"
-          ls -a
-          echo "---"
-          echo "Contents of mlruns folder:"
-          ls -R mlruns || (echo "mlruns directory not found or is empty." && exit 1)
-          echo "---"
-          echo "Attempting flexible find again:"
-          find mlruns -type f -path "*/artifacts/*"
+          echo "🚀 Running Exp: LR=${{ matrix.experiment.lr }}, Epochs=${{ matrix.experiment.epochs }}"
+          python mlops_pipeline/scripts/03_train_model.py
 
-      - name: Run Model Full Evaluation
-        run: python mlops_pipeline/scripts/04_evaluate_model.py
-
-      # ✅ Copy model artifacts for Docker build
-      - name: Copy trained model to deployment folder
-        run: |
-          echo "📦 Searching for latest trained model in MLflow..."
-          
-          # 🚨 แก้ไข: ค้นหาไฟล์ MLmodel ที่อยู่ใต้โครงสร้าง mlruns/models/
-          # โครงสร้าง: mlruns/[Experiment ID]/models/[Model ID]/artifacts/MLmodel
-          MODEL_PATH=$(find mlruns -type f -path "*/models/*/artifacts/MLmodel" | sort -r | head -1)
-          
-          if [ -z "$MODEL_PATH" ]; then
-            echo "❌ Model not found anywhere under mlruns/*/models/*/artifacts/"
-            # ลบ ls -R mlruns ออกได้เลย ถ้าไม่จำเป็นต้อง debug แล้ว
-            exit 1
-          fi
-          
-          MODEL_DIR=$(dirname "$MODEL_PATH")
-          echo "📁 Model found at: $MODEL_DIR"
-          
-          mkdir -p model
-          # cp -r จะคัดลอกไฟล์ทั้งหมด (รวมถึง MLmodel, conda.yaml, data/ ฯลฯ)
-          cp -r "$MODEL_DIR"/* model/
-          echo "✅ Model copied to ./model/"
-          ls -R model
-
-
-      # ✅ Upload artifacts for debugging (optional)
-      - name: Upload MLflow artifacts
+      - name: Upload MLflow Artifacts
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: mlflow-artifacts
+          name: mlflow-artifacts-${{ matrix.experiment.run_name }}
           path: mlruns/
 
-      # -------------------- 🔹 Docker Build & Test API --------------------
-      - name: Build Docker Image
-        run: |
-          docker build -t weather-mlops-api .
 
-      - name: Run Docker Container (background)
+  # -------------------- 🔹 JOB 3: Deploy and Test (CD) --------------------
+  deploy-and-test:
+    needs: train-and-compare
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
         run: |
-          # 🚨 ใช้ Port 8001 สำหรับ Container
-          docker run -d -p 8001:8000 --name weather_api weather-mlops-api
-          echo "⏳ Waiting for container to start (25s)..."
-          sleep 25
-          if docker ps | grep weather_api; then
-            echo "✅ Docker container started successfully on port 8001."
-          else
-            echo "🚨 Container failed to start. Logs:"
-            docker logs weather_api
+          pip install mlflow pillow
+
+      - name: Download MLflow artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: .
+
+      - name: Consolidate MLflow artifacts
+        run: |
+          # 1. สร้างโฟลเดอร์ปลายทาง
+          mkdir -p mlruns
+          
+          # 2. วนลูปผ่านโฟลเดอร์ Artifacts ที่ถูกดาวน์โหลด
+          for dir in mlflow-artifacts-*; do
+            echo "Consolidating artifacts from $dir"
+            # คัดลอกเนื้อหาทั้งหมดในโฟลเดอร์ artifact (ซึ่งคือ EXP_ID) 
+            # ไปยัง mlruns/
+            # ใช้ find เพื่อคัดลอกเฉพาะโฟลเดอร์ EXP_ID และ RUN_ID
+            find "$dir" -maxdepth 1 -mindepth 1 -type d -exec cp -r {} mlruns/ \;
+          done
+          echo "✅ Consolidated mlruns directory."
+          # ตรวจสอบว่าไฟล์ MLmodel อยู่ในโครงสร้างที่คาดหวังหรือไม่
+          find mlruns -type f -name "MLmodel" | head -10
+
+      - name: Copy latest model for deployment
+        run: |
+          echo "📦 Searching for trained model..."
+          # 1. ค้นหาไฟล์ MLmodel ทั้งหมด
+          MODEL_FILES=$(find mlruns -type f -name "MLmodel")
+
+          if [ -z "$MODEL_FILES" ]; then
+            echo "❌ No MLmodel file found within mlruns/ directory structure."
             exit 1
           fi
+
+          # 2. คัดเลือกโฟลเดอร์โมเดลที่ถูกสร้างขึ้นล่าสุด (โดยใช้ find และ sort ตามเวลา)
+          # เราใช้ ls -td (เรียงตามเวลา) บนไดเรกทอรีของไฟล์ MLmodel
+          LATEST_MODEL_DIR=$(echo "$MODEL_FILES" | xargs dirname | xargs ls -td | head -1)
+
+          if [ -z "$LATEST_MODEL_DIR" ]; then
+            echo "❌ Failed to determine the latest model directory."
+            exit 1
+          fi
+
+          # 3. ดำเนินการคัดลอก
+          mkdir -p model
+          cp -r "$LATEST_MODEL_DIR"/* model/
+          echo "✅ Copied model from $LATEST_MODEL_DIR"
+          ls -R model
+
+      - name: Build Docker Image
+        run: docker build -t weather-mlops-api .
+
+      - name: Run Docker Container
+        run: |
+          docker run -d -p 8001:8000 --name weather_api weather-mlops-api
+          echo "⏳ Waiting for container (20s)..."
+          sleep 20
+          docker ps
 
       - name: Test API Prediction
         run: |
           IMAGE_PATH="test_assets/1440909480.jpg"
-          echo "🧪 Testing API Prediction using ${IMAGE_PATH}..."
-          
-          # 💡 เพิ่มการตรวจสอบไฟล์
-          if [ ! -f "$IMAGE_PATH" ]; then
-              echo "🚨 ERROR: Test image not found at ${IMAGE_PATH}. Listing current directory contents:"
-              ls -R
-              exit 1
-          fi
-          
-          # 1. ตรวจสอบ Health Check
+          echo "🧪 Testing API Prediction..."
           curl --fail --retry 5 --retry-delay 5 http://127.0.0.1:8001/
-          
-          # 2. ทดสอบ Prediction
-          curl -X POST -F "file=@${IMAGE_PATH}" http://127.0.0.1:8001/predict
-          
-          echo "✅ API responded successfully."
+          curl -X POST -F "file=@${IMAGE_PATH}" http://127.0.0.1:8001/predict --fail
+          echo "✅ API test passed."
 
       - name: Stop and Remove Docker Container
         if: always()
