@@ -19,7 +19,7 @@ if REMOTE_TRACKING_URI:
 
     # os.environ["MLFLOW_ARTIFACT_URI"] = LOCAL_ARTIFACT_PATH
 
-    ARTIFACT_PATH_FOR_LOG = "model" 
+    ARTIFACT_PATH_FOR_LOG = "model"
 
 else:
     # หากรันภายในเครื่อง ให้ใช้ไฟล์
