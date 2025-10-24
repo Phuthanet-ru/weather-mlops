@@ -92,6 +92,25 @@ jobs:
           fi
           echo "✅ Dataset prepared."
 
+      - name: 💣 Force cleanup of non-image files via Shell
+        run: |
+          DATA_PATH="mlops_pipeline/data"
+          echo "🔎 Forcing cleanup of non-image files in ${DATA_PATH}..."
+
+          # ค้นหาไฟล์ทั้งหมดที่ 'นามสกุล' ไม่ใช่ไฟล์ภาพที่ TensorFlow รองรับ 
+          # และลบไฟล์เหล่านั้น
+          find ${DATA_PATH} -type f \
+              ! -name "*.jpg" \
+              ! -name "*.jpeg" \
+              ! -name "*.png" \
+              ! -name "*.gif" \
+              ! -name "*.bmp" \
+              ! -name "*.webp" \
+              ! -name "*." \
+              -delete
+
+          echo "✅ Aggressive file cleanup completed. Any remaining files are either corrupt images or files without common extensions."
+
       - name: Set MLflow Local Artifact Location
         run: |
           # กำหนด MLFLOW_ARTIFACT_URI ให้ชี้ไปที่พาธในเครื่อง (Runner) ที่มีสิทธิ์เขียน
@@ -99,7 +118,6 @@ jobs:
           # ตอนนี้ MLFLOW_ARTIFACT_URI จะถูกใช้ในขั้นตอนต่อไป
   
       - name: "Run Model Training (Exp: ${{ matrix.experiment.run_name }})"
-          
         run: |
           echo "🚀 Running Exp: LR=${{ matrix.experiment.lr }}, Epochs=${{ matrix.experiment.epochs }}"
           python mlops_pipeline/scripts/03_train_model.py \
