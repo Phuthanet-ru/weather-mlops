@@ -97,6 +97,15 @@ jobs:
           echo "📁 Dataset files preview:"
           find mlops_pipeline/data -type f | head -20
 
+      # 🚨 ขั้นตอนที่เพิ่มเข้ามา (ทางเลือกที่ 1)
+      - name: 🧹 Check and remove non-image files (Dedicated Script)
+        run: |
+          # ติดตั้ง Pillow สำหรับการจัดการภาพ ถ้ายังไม่ได้ติดตั้ง
+          # (ถูกติดตั้งแล้วในขั้นตอน Install dependencies แต่ใส่ซ้ำเผื่อขาด)
+          # python -m pip install pillow
+          python mlops_pipeline/scripts/find_corrupted.py
+          echo "✅ Data cleaned using dedicated script."
+
       - name: "Run Model Training (Exp: ${{ matrix.experiment.run_name }})"
         run: |
           echo "🚀 Running Exp: LR=${{ matrix.experiment.lr }}, Epochs=${{ matrix.experiment.epochs }}"
