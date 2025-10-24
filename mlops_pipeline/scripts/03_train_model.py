@@ -35,22 +35,24 @@ def remove_dot_files(root_dir):
                     count += 1
                 except Exception:
                     pass
-
-            for file in files:
-                full_path = os.path.join(root, file)
-                # E501 fix: ตัดบรรทัดให้สั้นลง
-                is_dot_file = file.startswith('.') or \
+                
+                for file in files:
+                    full_path = os.path.join(root, file)
+                
+                    # ตรวจสอบไฟล์ dot และไฟล์ระบบ
+                    is_dot_file = file.startswith('.') or \
                     file.lower() in ['thumbs.db', '.ds_store', 'desktop.ini']
-                # E501 fix: ตัดบรรทัดให้สั้นลง
-                is_invalid_image = not file.lower().endswith(
-                    ALLOWED_EXTENSIONS)
-                if is_dot_file or is_invalid_image:
-                    try:
-                        os.remove(full_path)
-                        count += 1
-                    except Exception as e:
-                        print(f"ไม่สามารถลบไฟล์ {full_path}: {e}")
-    return count
+                    # ตรวจสอบว่าไฟล์มีนามสกุลที่ไม่ได้รับอนุญาต หรือไม่มีนามสกุลเลย
+                    has_extension = '.' in file
+                    is_invalid_image = not file.lower().endswith(ALLOWED_EXTENSIONS)
+                
+                    # ลบไฟล์ dot หรือไฟล์ที่ไม่มีนามสกุลภาพที่ถูกต้อง
+                    if is_dot_file or is_invalid_image or not has_extension:
+                        try:
+                            os.remove(full_path)
+                            count += 1
+                        except Exception as e:
+                            print(f"ไม่สามารถลบไฟล์ {full_path}: {e}")
 
 
 def remove_corrupted_images(root_dir):
@@ -63,8 +65,10 @@ def remove_corrupted_images(root_dir):
                 try:
                     img = Image.open(path)
                     img.verify()
-                except Exception:
-                    print(f"🟥 พบไฟล์เสีย: {path} → ลบออก")
+                    # 💡 เพิ่มการปิดไฟล์เพื่อปล่อย resource และยืนยันการอ่าน
+                    img.close() 
+                except Exception: # ใช้ Exception เพื่อจับข้อผิดพลาดทั้งหมด
+                    print(f"🟥 พบไฟล์เสีย (ไม่สามารถเปิด/ยืนยันได้): {path} → ลบออก")
                     os.remove(path)
                     removed += 1
     return removed
