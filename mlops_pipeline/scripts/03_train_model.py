@@ -20,7 +20,7 @@ if REMOTE_TRACKING_URI:
     # os.environ["MLFLOW_ARTIFACT_URI"] = LOCAL_ARTIFACT_PATH
 
     ARTIFACT_PATH_FOR_LOG = "model"
-
+    
 else:
     # หากรันภายในเครื่อง ให้ใช้ไฟล์
     mlflow.set_tracking_uri(f"file:{os.getcwd()}/mlruns")
@@ -100,7 +100,7 @@ def train_evaluate_register(preprocessing_run_id=None, epochs=10, lr=0.001):
         mlflow.log_metric("train_accuracy", history.history["accuracy"][-1])
         mlflow.log_metric("val_accuracy", history.history["val_accuracy"][-1])
 
-        artifact_path = (
+        artifact_path_local = (
             ARTIFACT_PATH_FOR_LOG
             if 'ARTIFACT_PATH_FOR_LOG' in locals()
             else "model"
@@ -108,7 +108,7 @@ def train_evaluate_register(preprocessing_run_id=None, epochs=10, lr=0.001):
 
         mlflow.tensorflow.log_model(
             model=model,
-            artifact_path=artifact_path,
+            artifact_path=artifact_path_local,
             input_example=np.zeros((1, 128, 128, 3)),
             registered_model_name="weather-classifier-prod"
         )
