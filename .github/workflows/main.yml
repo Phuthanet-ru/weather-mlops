@@ -151,15 +151,30 @@ jobs:
       - name: Copy latest model for deployment
         run: |
           echo "📦 Searching for trained model..."
-          MODEL_PATH=$(find mlruns -type f -name "MLmodel" | grep "artifacts" | sort -r | head -1)
-          if [ -z "$MODEL_PATH" ]; then
-            echo "❌ No model found!"
+          # 🚨 แก้ไขการค้นหา: หาโฟลเดอร์ 'model' ที่มีไฟล์ 'MLmodel' และเลือกโฟลเดอร์ที่ถูกสร้างล่าสุด
+          # โครงสร้าง MLflow คือ mlruns/EXP_ID/RUN_ID/artifacts/model/MLmodel
+
+          # 1. ค้นหาโฟลเดอร์ที่เก็บโมเดลทั้งหมด
+          MODEL_DIRS=$(find mlruns -type f -name "MLmodel" -exec dirname {} \;)
+
+          if [ -z "$MODEL_DIRS" ]; then
+            echo "❌ No MLmodel file found within mlruns/ directory structure."
             exit 1
           fi
-          MODEL_DIR=$(dirname "$MODEL_PATH")
+
+          # 2. คัดเลือกโฟลเดอร์โมเดลที่ถูกสร้างขึ้นล่าสุด (ใช้เวลาการสร้าง/แก้ไข)
+          # เราใช้ 'ls -td' เพื่อเรียงลำดับตามเวลา (ล่าสุดก่อน)
+          LATEST_MODEL_DIR=$(echo "$MODEL_DIRS" | xargs ls -td | head -1)
+
+          if [ -z "$LATEST_MODEL_DIR" ]; then
+            echo "❌ Failed to determine the latest model directory."
+            exit 1
+          fi
+
+          # 3. ดำเนินการคัดลอก
           mkdir -p model
-          cp -r "$MODEL_DIR"/* model/
-          echo "✅ Copied model from $MODEL_DIR"
+          cp -r "$LATEST_MODEL_DIR"/* model/
+          echo "✅ Copied model from $LATEST_MODEL_DIR"
           ls -R model
 
       - name: Build Docker Image
