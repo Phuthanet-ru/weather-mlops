@@ -97,7 +97,7 @@ jobs:
           echo "📁 Dataset files preview:"
           find mlops_pipeline/data -type f | head -20
 
-      - name: Run Model Training (Exp: ${{ matrix.experiment.run_name }})
+      - name: "Run Model Training (Exp: ${{ matrix.experiment.run_name }})"
         run: |
           echo "🚀 Running Exp: LR=${{ matrix.experiment.lr }}, Epochs=${{ matrix.experiment.epochs }}"
           python mlops_pipeline/scripts/03_train_model.py
