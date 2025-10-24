@@ -5,10 +5,11 @@ from tensorflow.keras import layers, models
 import numpy as np
 from PIL import Image
 import os
-from pathlib import Path
 
+# กำหนดให้ MLflow ใช้โฟลเดอร์เก็บผลในเครื่อง
 mlflow.set_tracking_uri("file:./mlruns")
 
+# ✅ นามสกุลภาพที่อนุญาต
 ALLOWED_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp')
 
 
@@ -32,7 +33,6 @@ def remove_dot_files(root_dir):
                 file.startswith('.') or
                 file.lower() in ['thumbs.db', '.ds_store', 'desktop.ini']
             )
-            # ตรวจสอบว่าไฟล์มีนามสกุลที่ไม่ได้รับอนุญาต หรือไม่มีนามสกุลเลย
             is_invalid_image = not file.lower().endswith(ALLOWED_EXTENSIONS)
             if is_dot_file or is_invalid_image:
                 try:
@@ -54,9 +54,10 @@ def remove_corrupted_images(root_dir):
                     img = Image.open(path)
                     img.verify()
                     img.close()
-                except Exception:  # ใช้ Exception เพื่อจับข้อผิดพลาดทั้งหมด
+                except Exception:
                     print(
-                        f"🟥 พบไฟล์เสีย (ไม่สามารถเปิด/ยืนยันได้): {path} → ลบออก"
+                        "🟥 พบไฟล์เสีย (ไม่สามารถเปิด/ยืนยันได้): "
+                        f"{path} → ลบออก"
                     )
                     os.remove(path)
                     removed += 1
@@ -78,7 +79,8 @@ def train_evaluate_register(preprocessing_run_id=None, epochs=10, lr=0.001):
         cleaned_count = remove_dot_files(data_path)
         corrupted_count = remove_corrupted_images(data_path)
         print(
-            f"🧼 ลบไฟล์ระบบ {cleaned_count} ไฟล์, ลบไฟล์เสีย {corrupted_count} ไฟล์"
+            "🧼 ลบไฟล์ระบบ "
+            f"{cleaned_count} ไฟล์, ลบไฟล์เสีย {corrupted_count} ไฟล์"
         )
 
         print(f"📂 โหลดข้อมูลจาก: {data_path}")
