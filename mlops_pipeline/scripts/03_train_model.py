@@ -110,12 +110,12 @@ def train_evaluate_register(preprocessing_run_id=None, epochs=10, lr=0.001):
             model=model,
             artifact_path=artifact_path_local,
             input_example=np.zeros((1, 128, 128, 3)),
-            registered_model_name="weather-classifier-prod" 
+            registered_model_name="weather-classifier-prod"
         )
 
         # 🚨 เพิ่มข้อความยืนยันที่ชัดเจนตรงนี้
-        print(f"✅ บันทึกโมเดล 'weather-classifier-prod' และ Artifacts"
-              f"ลงใน MLflow Run ID: {mlflow.active_run().info.run_id} สำเร็จแล้ว!")
+        print(f"✅ บันทึกโมเดล 'weather-classifier-prod' และArtifacts ลงใน"
+              f"MLflow Run ID: {mlflow.active_run().info.run_id} สำเร็จแล้ว!")
         print("✅ Training and logging completed successfully.")
 
 
