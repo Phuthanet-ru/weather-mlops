@@ -12,7 +12,6 @@ import argparse
 
 # mlflow.set_tracking_uri("file:./mlruns")
 # ใช้ os.getcwd() แทน Path.cwd() หากคุณไม่ได้ import Path
-# ใช้แค่ MLFLOW_TRACKING_URI เท่านั้น เนื่องจากไม่ได้ตั้งค่า MLFLOW_TRACKING_USERNAME/PASSWORD
 REMOTE_TRACKING_URI = os.environ.get("MLFLOW_TRACKING_URI")
 if REMOTE_TRACKING_URI:
     mlflow.set_tracking_uri(REMOTE_TRACKING_URI)
@@ -29,14 +28,15 @@ def train_evaluate_register(preprocessing_run_id=None, epochs=10, lr=0.001):
     # รับค่า epochs และ lr จาก Arguments หรือใช้ค่า Default
     parser = argparse.ArgumentParser()
     parser.add_argument("--lr", type=float, default=lr, help="Learning rate")
-    parser.add_argument("--epochs", type=int, default=epochs, help="Number of epochs")
-    
+    parser.add_argument("--epochs", type=int, default=epochs,
+                        help="Number of epochs")
+
     # ดึงค่า arguments ที่ส่งมาจาก command line (จาก GitHub Actions Matrix)
     if len(sys.argv) > 1:
         args, _ = parser.parse_known_args()
         lr = args.lr
         epochs = args.epochs
-    
+
     # กำหนด run_name ตาม parameter ที่ถูกใช้จริง
     run_name = f"cnn_lr_{lr}_ep_{epochs}"
 
@@ -108,4 +108,3 @@ def train_evaluate_register(preprocessing_run_id=None, epochs=10, lr=0.001):
 
 if __name__ == "__main__":
     train_evaluate_register()
-    
