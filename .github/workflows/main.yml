@@ -92,6 +92,12 @@ jobs:
           fi
           echo "✅ Dataset prepared."
 
+      - name: Create safe temporary directory
+        run: |
+          # สร้างโฟลเดอร์ชั่วคราวที่ใช้โดย TMPDIR
+          mkdir -p ${{ github.workspace }}/tmp
+          echo "✅ Created safe temporary directory for MLflow artifacts."
+
       - name: 💣 Force cleanup of non-image files via Shell
         run: |
           DATA_PATH="mlops_pipeline/data"
@@ -119,6 +125,9 @@ jobs:
       - name: "Run Model Training (Exp: ${{ matrix.experiment.run_name }})"
         env:
           TMPDIR: ${{ github.workspace }}/tmp
+            # 🚨 เพิ่ม TEMP/TMP เพื่อความครอบคลุม (อาจช่วยในกรณีที่ TMPDIR ไม่ถูกใช้)
+          TEMP: ${{ github.workspace }}/tmp
+          TMP: ${{ github.workspace }}/tmp
         run: |
           echo "🚀 Running Exp: LR=${{ matrix.experiment.lr }}, Epochs=${{ matrix.experiment.epochs }}"
           python mlops_pipeline/scripts/03_train_model.py \
