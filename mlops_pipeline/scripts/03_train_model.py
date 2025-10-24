@@ -4,11 +4,11 @@ import mlflow.tensorflow
 from tensorflow.keras import layers, models
 import numpy as np
 import os
-# ลบ 'from PIL import Image' เพราะไม่ได้ใช้แล้ว (ถูกย้ายไปที่ find_corrupted.py)
 
-# หากคุณยังใช้ os.getcwd() หรือ os.path.isabs ในโค้ดอื่นที่ไม่แสดง ให้เพิ่ม import shutil, argparse หากจำเป็น
+# หากคุณยังใช้ os.getcwd() หรือ os.path.isabs 
+# ในโค้ดอื่นที่ไม่แสดง ให้เพิ่ม import shutil, argparse หากจำเป็น
 
-#mlflow.set_tracking_uri("file:./mlruns")
+# mlflow.set_tracking_uri("file:./mlruns")
 # ใช้ os.getcwd() แทน Path.cwd() หากคุณไม่ได้ import Path
 REMOTE_TRACKING_URI = os.environ.get("MLFLOW_TRACKING_URI")
 if REMOTE_TRACKING_URI:
@@ -91,3 +91,4 @@ def train_evaluate_register(preprocessing_run_id=None, epochs=10, lr=0.001):
 
 if __name__ == "__main__":
     train_evaluate_register()
+    
