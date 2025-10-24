@@ -61,7 +61,8 @@ def clean_non_images(root_dir):
     """ฟังก์ชันรวมการทำความสะอาดเบื้องต้น"""
     removed_dot = remove_dot_files(root_dir)
     removed_corrupt = remove_corrupted_images(root_dir)
-    print(f"🧼 ลบไฟล์ระบบ {removed_dot} ไฟล์, ลบไฟล์เสีย {removed_corrupt} ไฟล์")
+    print(f"🧼 ลบไฟล์ระบบ {removed_dot} ไฟล์, "
+          f"ลบไฟล์เสีย {removed_corrupt} ไฟล์")
     return removed_dot + removed_corrupt
 
 
