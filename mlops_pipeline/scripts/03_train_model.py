@@ -107,9 +107,10 @@ def train_evaluate_register(preprocessing_run_id=None, epochs=10, lr=0.001):
         mlflow.log_metric("train_accuracy", history.history["accuracy"][-1])
         mlflow.log_metric("val_accuracy", history.history["val_accuracy"][-1])
 
-        artifact_path = (ARTIFACT_PATH_FOR_LOG
-                         if 'ARTIFACT_PATH_FOR_LOG' in locals()
-                         else "model"
+        artifact_path = (
+            ARTIFACT_PATH_FOR_LOG
+            if 'ARTIFACT_PATH_FOR_LOG' in locals()
+            else "model"
         )
         
         mlflow.tensorflow.log_model(
