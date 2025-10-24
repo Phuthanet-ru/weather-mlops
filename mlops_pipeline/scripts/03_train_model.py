@@ -5,7 +5,7 @@ from tensorflow.keras import layers, models
 import numpy as np
 import os
 
-# หากคุณยังใช้ os.getcwd() หรือ os.path.isabs 
+# หากคุณยังใช้ os.getcwd() หรือ os.path.isabs
 # ในโค้ดอื่นที่ไม่แสดง ให้เพิ่ม import shutil, argparse หากจำเป็น
 
 # mlflow.set_tracking_uri("file:./mlruns")
@@ -91,4 +91,3 @@ def train_evaluate_register(preprocessing_run_id=None, epochs=10, lr=0.001):
 
 if __name__ == "__main__":
     train_evaluate_register()
-    
