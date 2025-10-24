@@ -109,7 +109,10 @@ jobs:
       - name: "Run Model Training (Exp: ${{ matrix.experiment.run_name }})"
         run: |
           echo "🚀 Running Exp: LR=${{ matrix.experiment.lr }}, Epochs=${{ matrix.experiment.epochs }}"
-          python mlops_pipeline/scripts/03_train_model.py
+          # 🚨 แก้ไขตรงนี้เพื่อส่งค่า arguments เข้าไปในสคริปต์ Python
+          python mlops_pipeline/scripts/03_train_model.py \
+              --lr ${{ matrix.experiment.lr }} \
+              --epochs ${{ matrix.experiment.epochs }}
 
       - name: Upload MLflow Artifacts
         if: success()
